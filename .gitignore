@@ -1,0 +1,23 @@
+# PlatformIO build output
+.pio/
+
+# PlatformIO project cache
+.pioenvs/
+.piolibdeps/
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Firmware binaries (built by CI, not committed)
+*.bin
+*.elf
+*.map
+
+# Node (if web installer tooling is added)
+node_modules/
