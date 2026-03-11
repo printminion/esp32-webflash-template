@@ -99,7 +99,7 @@ jobs:
       - name: List firmware files
         run: ls -lh firmware/
 
-      - name: Generate dev manifest.json
+      - name: Generate dev manifest and copy firmware
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           BASE_URL="https://printminion.github.io/esp32-webflash-template/dev"
@@ -148,10 +148,9 @@ jobs:
           # Copy firmware binaries into docs/dev for Pages hosting
           cp firmware/*.bin docs/dev/
 
-      - name: Deploy dev channel to GitHub Pages
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
-          destination_dir: .
-          keep_files: true
+          keep_files: false
