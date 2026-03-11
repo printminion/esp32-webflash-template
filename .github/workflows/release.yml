@@ -28,16 +28,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Cache PlatformIO
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2.0
         with:
           path: ~/.platformio
           key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: '3.11'
 
@@ -59,7 +59,7 @@ jobs:
              firmware/firmware-${{ matrix.environment }}-${{ github.ref_name }}.bin
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.0
         with:
           name: firmware-${{ matrix.environment }}
           path: firmware/*.bin
@@ -77,10 +77,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Download all firmware artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.2.0
         with:
           path: firmware
           merge-multiple: true
