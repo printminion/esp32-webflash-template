@@ -3,10 +3,531 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>esp32-webflash-template — Web Installer</title>
+  <title>ESP32 Web Flasher</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0e17;
+      --surface:   #111827;
+      --border:    #1f2d45;
+      --accent:    #00d4ff;
+      --accent2:   #7c3aed;
+      --success:   #10b981;
+      --warning:   #f59e0b;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Outfit', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.25);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+    }
+
+    .badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.75rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 300;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      animation: fadeUp 0.6s 0.15s ease both;
+      box-shadow: 0 0 0 1px rgba(0,212,255,0.05), 0 24px 48px rgba(0,0,0,0.4);
+    }
+
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-red    { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green  { background: #10b981; }
+
+    .card-body { padding: 1.75rem 1.5rem; }
+
+    .channel-toggle {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .channel-btn {
+      flex: 1;
+      padding: 0.5rem;
+      background: transparent;
+      border: none;
+      border-radius: 7px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .channel-btn.active {
+      background: rgba(0,212,255,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(0,212,255,0.2);
+    }
+
+    .field-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .board-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .board-option {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem 1rem;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .board-option:hover {
+      border-color: rgba(0,212,255,0.3);
+      background: rgba(0,212,255,0.04);
+    }
+
+    .board-option.selected {
+      border-color: var(--accent);
+      background: rgba(0,212,255,0.07);
+      box-shadow: 0 0 0 1px rgba(0,212,255,0.15);
+    }
+
+    .board-option input[type="radio"] { display: none; }
+
+    .board-icon {
+      width: 36px; height: 36px;
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .board-info { flex: 1; }
+
+    .board-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin-bottom: 0.1rem;
+    }
+
+    .board-meta {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .board-check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .board-option.selected .board-check {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(0,212,255,0.4);
+    }
+
+    .flash-wrap { margin-top: 0.25rem; }
+
+    esp-web-install-button { display: block; width: 100%; }
+
+    esp-web-install-button::part(button) {
+      width: 100%;
+      padding: 0.875rem 1.5rem;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    esp-web-install-button::part(button):hover  { opacity: 0.9; }
+    esp-web-install-button::part(button):active { transform: scale(0.99); }
+
+    .no-board-hint {
+      width: 100%;
+      padding: 0.875rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+      font-family: var(--mono);
+    }
+
+    .info-strip {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .info-item { flex: 1; text-align: center; }
+
+    .info-val {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-bottom: 0.15rem;
+    }
+
+    .info-key {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .browser-warn {
+      display: none;
+      width: 100%;
+      max-width: 560px;
+      padding: 1rem 1.25rem;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 10px;
+      color: var(--warning);
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .no-serial .browser-warn { display: block; }
+    .no-serial .card { opacity: 0.5; pointer-events: none; }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+  </style>
 </head>
 <body>
-  <h1>esp32-webflash-template</h1>
-  <p>Web installer coming in Phase 4.</p>
+<div class="wrap" id="app">
+
+  <header>
+    <div class="badge">Web Installer</div>
+    <h1>ESP32 Webflash<br>Template</h1>
+    <p class="subtitle">Select your board, connect via USB and flash directly from your browser — no software required.</p>
+  </header>
+
+  <div class="browser-warn">
+    ⚠ WebSerial is not supported in this browser. Please use <strong>Chrome</strong> or <strong>Edge</strong> on desktop.
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="dot dot-red"></span>
+      <span class="dot dot-yellow"></span>
+      <span class="dot dot-green"></span>
+      <span style="margin-left:0.5rem">flash-tool.sh</span>
+    </div>
+
+    <div class="card-body">
+
+      <div class="channel-toggle">
+        <button class="channel-btn active" id="btn-release" onclick="setChannel('release')">⬟ Release</button>
+        <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')">⬡ Dev</button>
+      </div>
+
+      <div class="field-label">Select board</div>
+      <div class="board-list">
+
+        <label class="board-option" id="opt-c3">
+          <input type="radio" name="board" value="seeed_xiao_esp32c3" onchange="selectBoard(this)">
+          <div class="board-icon">🟢</div>
+          <div class="board-info">
+            <div class="board-name">Seeed XIAO ESP32-C3</div>
+            <div class="board-meta">ESP32-C3 · RISC-V · 4MB Flash</div>
+          </div>
+          <div class="board-check"></div>
+        </label>
+
+        <label class="board-option" id="opt-s3">
+          <input type="radio" name="board" value="seeed_xiao_esp32s3" onchange="selectBoard(this)">
+          <div class="board-icon">🔵</div>
+          <div class="board-info">
+            <div class="board-name">Seeed XIAO ESP32-S3</div>
+            <div class="board-meta">ESP32-S3 · Xtensa · 8MB Flash · Camera ready</div>
+          </div>
+          <div class="board-check"></div>
+        </label>
+
+        <label class="board-option" id="opt-generic">
+          <input type="radio" name="board" value="generic_esp32" onchange="selectBoard(this)">
+          <div class="board-icon">⚪</div>
+          <div class="board-info">
+            <div class="board-name">Generic ESP32</div>
+            <div class="board-meta">ESP32 · Xtensa Dual-core · DevKitC</div>
+          </div>
+          <div class="board-check"></div>
+        </label>
+
+      </div>
+
+      <div class="flash-wrap">
+        <div class="no-board-hint" id="no-board-hint">← Pick a board to continue</div>
+        <esp-web-install-button id="install-btn" style="display:none"></esp-web-install-button>
+      </div>
+
+      <div class="info-strip">
+        <div class="info-item">
+          <div class="info-val" id="info-version">—</div>
+          <div class="info-key">Version</div>
+        </div>
+        <div class="info-item">
+          <div class="info-val" id="info-channel">release</div>
+          <div class="info-key">Channel</div>
+        </div>
+        <div class="info-item">
+          <div class="info-val" id="info-board">—</div>
+          <div class="info-key">Board</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      Open source ·
+      <a href="https://github.com/printminion/esp32-webflash-template" target="_blank">GitHub</a> ·
+      Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank">ESP Web Tools</a>
+    </p>
+  </footer>
+
+</div>
+<script>
+  const BASE = 'https://printminion.github.io/esp32-webflash-template';
+  let channel    = 'release';
+  let boardValue = null;
+  let manifest   = null;
+
+  if (!('serial' in navigator)) {
+    document.getElementById('app').classList.add('no-serial');
+  }
+
+  async function loadManifest() {
+    const url = channel === 'release'
+      ? `${BASE}/manifest.json`
+      : `${BASE}/dev/manifest.json`;
+    try {
+      const r = await fetch(url);
+      manifest = await r.json();
+      document.getElementById('info-version').textContent = manifest.version || '—';
+      document.getElementById('info-channel').textContent = manifest.channel || channel;
+    } catch {
+      manifest = null;
+      document.getElementById('info-version').textContent = 'unavailable';
+    }
+    updateInstallButton();
+  }
+
+  function setChannel(ch) {
+    channel = ch;
+    document.getElementById('btn-release').classList.toggle('active', ch === 'release');
+    document.getElementById('btn-dev').classList.toggle('active', ch === 'dev');
+    loadManifest();
+  }
+
+  function selectBoard(radio) {
+    boardValue = radio.value;
+    document.querySelectorAll('.board-option').forEach(el => el.classList.remove('selected'));
+    radio.closest('.board-option').classList.add('selected');
+    const labels = { seeed_xiao_esp32c3: 'XIAO C3', seeed_xiao_esp32s3: 'XIAO S3', generic_esp32: 'Generic' };
+    document.getElementById('info-board').textContent = labels[boardValue] || boardValue;
+    updateInstallButton();
+  }
+
+  function updateInstallButton() {
+    const hint = document.getElementById('no-board-hint');
+    const btn  = document.getElementById('install-btn');
+
+    if (!boardValue || !manifest) {
+      hint.style.display = 'block';
+      btn.style.display  = 'none';
+      return;
+    }
+
+    const boardManifestMap = {
+      seeed_xiao_esp32c3: 'Seeed XIAO ESP32-C3',
+      seeed_xiao_esp32s3: 'Seeed XIAO ESP32-S3',
+      generic_esp32:      'Generic ESP32',
+    };
+
+    const build = manifest.builds?.find(b => b.board === boardManifestMap[boardValue]);
+    if (!build) {
+      hint.textContent   = 'Firmware not found for this board in manifest.';
+      hint.style.display = 'block';
+      btn.style.display  = 'none';
+      return;
+    }
+
+    const singleManifest = { name: manifest.name, version: manifest.version, builds: [build] };
+    const blob    = new Blob([JSON.stringify(singleManifest)], { type: 'application/json' });
+    const blobUrl = URL.createObjectURL(blob);
+
+    btn.setAttribute('manifest', blobUrl);
+    hint.style.display = 'none';
+    btn.style.display  = 'block';
+  }
+
+  loadManifest();
+</script>
 </body>
 </html>
