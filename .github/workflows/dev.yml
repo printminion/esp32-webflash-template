@@ -1,0 +1,157 @@
+# ============================================================
+# dev.yml
+# Triggered on pushes to the dev branch.
+# Builds all release environments, deploys binaries and an
+# updated manifest to the dev/ channel on GitHub Pages.
+# ============================================================
+
+name: Dev build
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build:
+    name: Build firmware
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment:
+          - seeed_xiao_esp32c3
+          - seeed_xiao_esp32s3
+          - generic_esp32
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Compute version string
+        id: version
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "version=dev-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Inject firmware version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+
+      - name: Build ${{ matrix.environment }}
+        run: pio run -e ${{ matrix.environment }}
+
+      - name: Rename binary
+        run: |
+          mkdir -p firmware
+          VERSION="${{ steps.version.outputs.version }}"
+          cp .pio/build/${{ matrix.environment }}/firmware.bin \
+             firmware/firmware-${{ matrix.environment }}-${VERSION}.bin
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.environment }}
+          path: firmware/*.bin
+          retention-days: 3
+
+  deploy:
+    name: Deploy dev channel
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compute version string
+        id: version
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "version=dev-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: firmware
+          merge-multiple: true
+
+      - name: List firmware files
+        run: ls -lh firmware/
+
+      - name: Generate dev manifest.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BASE_URL="https://printminion.github.io/esp32-webflash-template/dev"
+          mkdir -p docs/dev
+
+          cat > docs/dev/manifest.json << EOF
+          {
+            "name": "esp32-webflash-template",
+            "version": "${VERSION}",
+            "channel": "dev",
+            "builds": [
+              {
+                "chipFamily": "ESP32-C3",
+                "board": "Seeed XIAO ESP32-C3",
+                "parts": [
+                  {
+                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
+                    "offset": 0
+                  }
+                ]
+              },
+              {
+                "chipFamily": "ESP32-S3",
+                "board": "Seeed XIAO ESP32-S3",
+                "parts": [
+                  {
+                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
+                    "offset": 0
+                  }
+                ]
+              },
+              {
+                "chipFamily": "ESP32",
+                "board": "Generic ESP32",
+                "parts": [
+                  {
+                    "path": "${BASE_URL}/firmware-generic_esp32-${VERSION}.bin",
+                    "offset": 0
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+          # Copy firmware binaries into docs/dev for Pages hosting
+          cp firmware/*.bin docs/dev/
+
+      - name: Deploy dev channel to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          destination_dir: .
+          keep_files: true
