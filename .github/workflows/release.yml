@@ -1,0 +1,171 @@
+# ============================================================
+# release.yml
+# Triggered on version tags (v*).
+# Builds all release PlatformIO environments, creates a
+# GitHub Release and attaches firmware .bin files as assets.
+# Also updates the web installer manifest and deploys to
+# GitHub Pages.
+# ============================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build firmware
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment:
+          - seeed_xiao_esp32c3
+          - seeed_xiao_esp32s3
+          - generic_esp32
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Inject firmware version
+        run: |
+          VERSION="${{ github.ref_name }}"
+          sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+
+      - name: Build ${{ matrix.environment }}
+        run: pio run -e ${{ matrix.environment }}
+
+      - name: Rename binary
+        run: |
+          mkdir -p firmware
+          cp .pio/build/${{ matrix.environment }}/firmware.bin \
+             firmware/firmware-${{ matrix.environment }}-${{ github.ref_name }}.bin
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.environment }}
+          path: firmware/*.bin
+          retention-days: 7
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: firmware
+          merge-multiple: true
+
+      - name: List firmware files
+        run: ls -lh firmware/
+
+      - name: Generate manifest.json
+        run: |
+          VERSION="${{ github.ref_name }}"
+          BASE_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
+
+          cat > docs/manifest.json << EOF
+          {
+            "name": "esp32-webflash-template",
+            "version": "${VERSION}",
+            "channel": "release",
+            "builds": [
+              {
+                "chipFamily": "ESP32-C3",
+                "board": "Seeed XIAO ESP32-C3",
+                "parts": [
+                  {
+                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
+                    "offset": 0
+                  }
+                ]
+              },
+              {
+                "chipFamily": "ESP32-S3",
+                "board": "Seeed XIAO ESP32-S3",
+                "parts": [
+                  {
+                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
+                    "offset": 0
+                  }
+                ]
+              },
+              {
+                "chipFamily": "ESP32",
+                "board": "Generic ESP32",
+                "parts": [
+                  {
+                    "path": "${BASE_URL}/firmware-generic_esp32-${VERSION}.bin",
+                    "offset": 0
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+      - name: Commit updated manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/manifest.json
+          git diff --staged --quiet || git commit -m "chore: update manifest.json for ${{ github.ref_name }}"
+          git push origin HEAD:main
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: |
+            ## esp32-webflash-template ${{ github.ref_name }}
+
+            ### Flash via web installer
+            👉 https://printminion.github.io/esp32-webflash-template/
+
+            ### Supported boards
+            | Board | Firmware file |
+            |---|---|
+            | Seeed XIAO ESP32-C3 | `firmware-seeed_xiao_esp32c3-${{ github.ref_name }}.bin` |
+            | Seeed XIAO ESP32-S3 | `firmware-seeed_xiao_esp32s3-${{ github.ref_name }}.bin` |
+            | Generic ESP32 | `firmware-generic_esp32-${{ github.ref_name }}.bin` |
+          files: firmware/*.bin
+          draft: false
+          prerelease: false
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          destination_dir: .
+          keep_files: true
