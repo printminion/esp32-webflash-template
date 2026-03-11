@@ -1,6 +1,6 @@
 {
   "name": "esp32-webflash-template",
-  "version": "dev-9bc1120",
+  "version": "dev-3f27fad",
   "channel": "dev",
   "builds": [
     {
@@ -8,7 +8,7 @@
       "board": "Seeed XIAO ESP32-C3",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32c3-dev-9bc1120.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32c3-dev-3f27fad.bin",
           "offset": 0
         }
       ]
@@ -18,7 +18,7 @@
       "board": "Seeed XIAO ESP32-S3",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32s3-dev-9bc1120.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32s3-dev-3f27fad.bin",
           "offset": 0
         }
       ]
@@ -28,7 +28,7 @@
       "board": "Generic ESP32",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-generic_esp32-dev-9bc1120.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-generic_esp32-dev-3f27fad.bin",
           "offset": 0
         }
       ]
