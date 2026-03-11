@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>ESP32 Web Flasher</title>
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -463,11 +466,12 @@
   }
 
   async function loadManifest() {
+    const bust = `?cb=${Date.now()}`;
     const url = channel === 'release'
-      ? `${BASE}/manifest.json`
-      : `${BASE}/dev/manifest.json`;
+      ? `${BASE}/manifest.json${bust}`
+      : `${BASE}/dev/manifest.json${bust}`;
     try {
-      const r = await fetch(url);
+      const r = await fetch(url, { cache: 'no-store' });
       manifest = await r.json();
       document.getElementById('info-version').textContent = manifest.version || '—';
       document.getElementById('info-channel').textContent = manifest.channel || channel;
