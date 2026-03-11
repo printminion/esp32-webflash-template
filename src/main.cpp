@@ -8,18 +8,9 @@
 
 #include <Arduino.h>
 
-// Resolve board_config.h from the active board directory.
-// PlatformIO adds boards/<board>/ to the include path via
-// the board_build.include_dirs option (see platformio.ini).
-#if defined(BOARD_SEEED_XIAO_ESP32C3)
-  #include "../boards/seeed_xiao_esp32c3/board_config.h"
-#elif defined(BOARD_SEEED_XIAO_ESP32S3)
-  #include "../boards/seeed_xiao_esp32s3/board_config.h"
-#elif defined(BOARD_GENERIC_ESP32)
-  #include "../boards/generic_esp32/board_config.h"
-#else
-  #error "Unknown board — please add a board_config.h entry in main.cpp"
-#endif
+// Board config is resolved via the -I boards/<board> include path
+// set per-environment in platformio.ini — no relative path needed.
+#include "board_config.h"
 
 #include "logger.h"
 
