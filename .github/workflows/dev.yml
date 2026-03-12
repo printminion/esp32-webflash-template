@@ -22,6 +22,7 @@ jobs:
         environment:
           - seeed_xiao_esp32c3
           - seeed_xiao_esp32s3
+          - seeed_xiao_esp32c6
           - generic_esp32
 
     steps:
@@ -127,6 +128,16 @@ jobs:
                 "parts": [
                   {
                     "path": "${BASE_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
+                    "offset": 0
+                  }
+                ]
+              },
+              {
+                "chipFamily": "ESP32-C6",
+                "board": "Seeed XIAO ESP32-C6",
+                "parts": [
+                  {
+                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
                     "offset": 0
                   }
                 ]

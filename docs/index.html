@@ -411,6 +411,16 @@
           <div class="board-check"></div>
         </label>
 
+        <label class="board-option" id="opt-c6">
+          <input type="radio" name="board" value="seeed_xiao_esp32c6" onchange="selectBoard(this)">
+          <div class="board-icon">🟡</div>
+          <div class="board-info">
+            <div class="board-name">Seeed XIAO ESP32-C6</div>
+            <div class="board-meta">ESP32-C6 · RISC-V · WiFi 6 · Zigbee · Thread</div>
+          </div>
+          <div class="board-check"></div>
+        </label>
+
         <label class="board-option" id="opt-generic">
           <input type="radio" name="board" value="generic_esp32" onchange="selectBoard(this)">
           <div class="board-icon">⚪</div>
@@ -493,7 +503,7 @@
     boardValue = radio.value;
     document.querySelectorAll('.board-option').forEach(el => el.classList.remove('selected'));
     radio.closest('.board-option').classList.add('selected');
-    const labels = { seeed_xiao_esp32c3: 'XIAO C3', seeed_xiao_esp32s3: 'XIAO S3', generic_esp32: 'Generic' };
+    const labels = { seeed_xiao_esp32c3: 'XIAO C3', seeed_xiao_esp32s3: 'XIAO S3', seeed_xiao_esp32c6: 'XIAO C6', generic_esp32: 'Generic' };
     document.getElementById('info-board').textContent = labels[boardValue] || boardValue;
     updateInstallButton();
   }
@@ -511,6 +521,7 @@
     const boardManifestMap = {
       seeed_xiao_esp32c3: 'Seeed XIAO ESP32-C3',
       seeed_xiao_esp32s3: 'Seeed XIAO ESP32-S3',
+      seeed_xiao_esp32c6: 'Seeed XIAO ESP32-C6',
       generic_esp32:      'Generic ESP32',
     };
 
