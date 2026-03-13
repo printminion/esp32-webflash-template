@@ -43,6 +43,10 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Pre-install uv (required by pioarduino platform for ESP32-C6)
+        if: matrix.environment == 'seeed_xiao_esp32c6'
+        run: pip install uv
+
       - name: Compute version string
         id: version
         run: |
