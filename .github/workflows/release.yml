@@ -21,11 +21,21 @@ jobs:
 
     strategy:
       matrix:
-        environment:
-          - seeed_xiao_esp32c3
-          - seeed_xiao_esp32s3
-          - seeed_xiao_esp32c6
-          - generic_esp32
+        include:
+          # chip: esptool chip name for merge_bin
+          # bootloader_offset: 0x0 for RISC-V (C3/S3/C6), 0x1000 for Xtensa ESP32
+          - environment: seeed_xiao_esp32c3
+            chip: esp32c3
+            bootloader_offset: "0x0"
+          - environment: seeed_xiao_esp32s3
+            chip: esp32s3
+            bootloader_offset: "0x0"
+          - environment: seeed_xiao_esp32c6
+            chip: esp32c6
+            bootloader_offset: "0x0"
+          - environment: generic_esp32
+            chip: esp32
+            bootloader_offset: "0x1000"
 
     steps:
       - name: Checkout repository
@@ -42,8 +52,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install PlatformIO
-        run: pip install platformio
+      - name: Install PlatformIO and esptool
+        run: pip install platformio esptool
 
       - name: Pre-install uv (required by pioarduino platform for ESP32-C6)
         if: matrix.environment == 'seeed_xiao_esp32c6'
@@ -57,11 +67,17 @@ jobs:
       - name: Build ${{ matrix.environment }}
         run: pio run -e ${{ matrix.environment }}
 
-      - name: Rename binary
+      - name: Create merged firmware binary
         run: |
+          # Merge bootloader + partition table + app into a single binary flashable at offset 0.
+          # This is required for ESP Web Tools — flashing only the app binary (offset 0x10000)
+          # at offset 0 overwrites the bootloader and causes a crash-loop on next boot.
           mkdir -p firmware
-          cp .pio/build/${{ matrix.environment }}/firmware.bin \
-             firmware/firmware-${{ matrix.environment }}-${{ github.ref_name }}.bin
+          esptool.py --chip ${{ matrix.chip }} merge_bin \
+            -o firmware/firmware-${{ matrix.environment }}-${{ github.ref_name }}.bin \
+            ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.environment }}/bootloader.bin \
+            0x8000 .pio/build/${{ matrix.environment }}/partitions.bin \
+            0x10000 .pio/build/${{ matrix.environment }}/firmware.bin
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4.6.0
