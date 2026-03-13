@@ -66,9 +66,11 @@ for candidate in \
     pio \
     platformio \
     "$USERPROFILE/.platformio/penv/Scripts/platformio" \
+    "$USERPROFILE/.platformio/penv/Scripts/platformio.exe" \
     "$HOME/.platformio/penv/Scripts/platformio" \
+    "$HOME/.platformio/penv/Scripts/platformio.exe" \
     "$HOME/.platformio/penv/bin/platformio"; do
-  if command -v "$candidate" &>/dev/null 2>&1; then
+  if [[ -f "$candidate" ]] || command -v "$candidate" &>/dev/null 2>&1; then
     PIO="$candidate"
     break
   fi
@@ -78,22 +80,23 @@ if [[ -z "$PIO" ]]; then
   exit 1
 fi
 
-# Locate esptool.py
+# Locate esptool — check PATH, PlatformIO venv, and PlatformIO bundled package
 ESPTOOL=""
 for candidate in \
     esptool.py \
     esptool \
     "$USERPROFILE/.platformio/penv/Scripts/esptool.py" \
     "$HOME/.platformio/penv/Scripts/esptool.py" \
-    "$HOME/.platformio/penv/bin/esptool.py"; do
-  if command -v "$candidate" &>/dev/null 2>&1; then
+    "$HOME/.platformio/penv/bin/esptool.py" \
+    "$HOME/.platformio/packages/tool-esptoolpy/esptool.py"; do
+  if [[ -f "$candidate" ]] || command -v "$candidate" &>/dev/null 2>&1; then
     ESPTOOL="$candidate"
     break
   fi
 done
 if [[ -z "$ESPTOOL" ]]; then
-  echo "esptool not found — installing..."
-  pip install esptool
+  echo "esptool not found — installing via python -m pip..."
+  python -m pip install esptool
   ESPTOOL="esptool.py"
 fi
 
