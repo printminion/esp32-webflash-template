@@ -17,8 +17,9 @@ void setupWifi() {
   wm.setConfigPortalTimeout(180);  // portal closes after 3 min if unused
   wm.setConnectTimeout(30);
 
-  // AP name shown to user during provisioning
-  String apName = String("ESP32-Setup-") + String((uint32_t)ESP.getEfuseMac(), HEX);
+  // AP name shown to user during provisioning — includes firmware version for flash validation
+  String apName = String("ESP32-") + String(FIRMWARE_VERSION)
+                + String("-") + String((uint32_t)ESP.getEfuseMac(), HEX);
 
   bool connected = wm.autoConnect(apName.c_str());
 
