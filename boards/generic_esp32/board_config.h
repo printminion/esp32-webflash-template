@@ -14,3 +14,4 @@
 // Feature flags
 #define FEATURE_WIFI_PROVISIONING
 #define FEATURE_OTA
+#define FEATURE_VERSION_CHECK
