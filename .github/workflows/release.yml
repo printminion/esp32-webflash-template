@@ -24,6 +24,7 @@ jobs:
         environment:
           - seeed_xiao_esp32c3
           - seeed_xiao_esp32s3
+          - seeed_xiao_esp32c6
           - generic_esp32
 
     steps:
@@ -120,6 +121,16 @@ jobs:
                 ]
               },
               {
+                "chipFamily": "ESP32-C6",
+                "board": "Seeed XIAO ESP32-C6",
+                "parts": [
+                  {
+                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
+                    "offset": 0
+                  }
+                ]
+              },
+              {
                 "chipFamily": "ESP32",
                 "board": "Generic ESP32",
                 "parts": [
@@ -157,6 +168,7 @@ jobs:
             |---|---|
             | Seeed XIAO ESP32-C3 | `firmware-seeed_xiao_esp32c3-${{ github.ref_name }}.bin` |
             | Seeed XIAO ESP32-S3 | `firmware-seeed_xiao_esp32s3-${{ github.ref_name }}.bin` |
+            | Seeed XIAO ESP32-C6 | `firmware-seeed_xiao_esp32c6-${{ github.ref_name }}.bin` |
             | Generic ESP32 | `firmware-generic_esp32-${{ github.ref_name }}.bin` |
           files: firmware/*.bin
           draft: false
