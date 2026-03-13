@@ -124,10 +124,10 @@ void checkAndApplyUpdate() {
   cfg.transport_type = HTTP_TRANSPORT_OVER_SSL;
   cfg.skip_cert_common_name_check = true;
 
-  // esp_https_ota() API changed in ESP-IDF 4.1:
-  //   < 4.1 : esp_https_ota(const esp_http_client_config_t*)
-  //   >= 4.1 : esp_https_ota(const esp_https_ota_config_t*)
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 1, 0)
+  // esp_https_ota() signature changed in ESP-IDF 5.0:
+  //   < 5.0 : esp_https_ota(const esp_http_client_config_t*)
+  //   >= 5.0 : esp_https_ota(const esp_https_ota_config_t*)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   esp_https_ota_config_t ota_cfg = {};
   ota_cfg.http_config = &cfg;
   esp_err_t ret = esp_https_ota(&ota_cfg);
