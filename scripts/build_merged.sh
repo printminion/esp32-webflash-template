@@ -80,24 +80,30 @@ if [[ -z "$PIO" ]]; then
   exit 1
 fi
 
-# Locate esptool — check PATH, PlatformIO venv, and PlatformIO bundled package
-ESPTOOL=""
-for candidate in \
-    esptool.py \
-    esptool \
-    "$USERPROFILE/.platformio/penv/Scripts/esptool.py" \
-    "$HOME/.platformio/penv/Scripts/esptool.py" \
-    "$HOME/.platformio/penv/bin/esptool.py" \
-    "$HOME/.platformio/packages/tool-esptoolpy/esptool.py"; do
-  if [[ -f "$candidate" ]] || command -v "$candidate" &>/dev/null 2>&1; then
-    ESPTOOL="$candidate"
+# Locate esptool — prefer running as a Python module to avoid missing-deps issues
+# with the standalone script in PlatformIO's bundled package.
+ESPTOOL_CMD=""
+
+# Try PlatformIO's own Python first (has all deps for the bundled esptool)
+for pio_python in \
+    "$USERPROFILE/.platformio/penv/Scripts/python.exe" \
+    "$HOME/.platformio/penv/Scripts/python.exe" \
+    "$HOME/.platformio/penv/bin/python"; do
+  if [[ -f "$pio_python" ]] && "$pio_python" -m esptool version &>/dev/null 2>&1; then
+    ESPTOOL_CMD="$pio_python -m esptool"
     break
   fi
 done
-if [[ -z "$ESPTOOL" ]]; then
-  echo "esptool not found — installing via python -m pip..."
-  python -m pip install esptool
-  ESPTOOL="esptool.py"
+
+# Fall back to system Python
+if [[ -z "$ESPTOOL_CMD" ]]; then
+  if python -m esptool version &>/dev/null 2>&1; then
+    ESPTOOL_CMD="python -m esptool"
+  else
+    echo "esptool not found in PlatformIO or system Python — installing..."
+    python -m pip install esptool
+    ESPTOOL_CMD="python -m esptool"
+  fi
 fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
@@ -109,7 +115,7 @@ echo "==> Building ${ENV}..."
 mkdir -p "${OUT_DIR}"
 echo ""
 echo "==> Merging binary for ${CHIP_NAME} (bootloader @ ${BL_OFFSET})..."
-"$ESPTOOL" --chip "${CHIP_NAME}" merge_bin \
+$ESPTOOL_CMD --chip "${CHIP_NAME}" merge_bin \
   -o "${OUTPUT}" \
   "${BL_OFFSET}" "${BUILD_DIR}/bootloader.bin" \
   0x8000              "${BUILD_DIR}/partitions.bin" \
@@ -123,13 +129,12 @@ echo "==> Merged binary: ${OUTPUT} (${SIZE})"
 if [[ -n "$FLASH_PORT" ]]; then
   echo ""
   echo "==> Flashing to ${FLASH_PORT}..."
-  "$ESPTOOL" --chip "${CHIP_NAME}" --port "${FLASH_PORT}" --baud 921600 \
+  $ESPTOOL_CMD --chip "${CHIP_NAME}" --port "${FLASH_PORT}" --baud 921600 \
     write_flash 0x0 "${OUTPUT}"
   echo ""
   echo "==> Done. Monitor with: pio device monitor -p ${FLASH_PORT} -b 115200"
 else
   echo ""
   echo "To flash manually:"
-  echo "  esptool.py --chip ${CHIP_NAME} --port <PORT> --baud 921600 write_flash 0x0 ${OUTPUT}"
-  echo "  (or use the path found on this machine: ${ESPTOOL})"
+  echo "  $ESPTOOL_CMD --chip ${CHIP_NAME} --port <PORT> --baud 921600 write_flash 0x0 ${OUTPUT}"
 fi
