@@ -1,9 +1,9 @@
 {
-  "version": "v0.2.5",
+  "version": "v0.0.0",
   "boards": {
-    "Seeed XIAO ESP32-C3": "https://github.com/printminion/esp32-webflash-template/releases/download/v0.2.5/firmware-seeed_xiao_esp32c3-v0.2.5.bin",
-    "Seeed XIAO ESP32-S3": "https://github.com/printminion/esp32-webflash-template/releases/download/v0.2.5/firmware-seeed_xiao_esp32s3-v0.2.5.bin",
-    "Seeed XIAO ESP32-C6": "https://github.com/printminion/esp32-webflash-template/releases/download/v0.2.5/firmware-seeed_xiao_esp32c6-v0.2.5.bin",
-    "Generic ESP32":       "https://github.com/printminion/esp32-webflash-template/releases/download/v0.2.5/firmware-generic_esp32-v0.2.5.bin"
+    "Seeed XIAO ESP32-C3": "",
+    "Seeed XIAO ESP32-S3": "",
+    "Seeed XIAO ESP32-C6": "",
+    "Generic ESP32": ""
   }
 }
