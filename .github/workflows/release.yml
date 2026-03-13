@@ -96,10 +96,19 @@ jobs:
       - name: List firmware files
         run: ls -lh firmware/
 
+      - name: Copy firmware to docs for CORS-safe GitHub Pages hosting
+        run: |
+          VERSION="${{ github.ref_name }}"
+          mkdir -p docs/firmware/${VERSION}
+          cp firmware/*.bin docs/firmware/${VERSION}/
+
       - name: Generate manifest.json and version.json
         run: |
           VERSION="${{ github.ref_name }}"
-          BASE_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
+          # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled)
+          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/firmware/${VERSION}"
+          # version.json: fetched by firmware via esp_https_ota — GitHub Releases URLs are fine
+          RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
 
           cat > docs/manifest.json << EOF
           {
@@ -112,7 +121,7 @@ jobs:
                 "board": "Seeed XIAO ESP32-C3",
                 "parts": [
                   {
-                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
+                    "path": "${PAGES_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
                     "offset": 0
                   }
                 ]
@@ -122,7 +131,7 @@ jobs:
                 "board": "Seeed XIAO ESP32-S3",
                 "parts": [
                   {
-                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
+                    "path": "${PAGES_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
                     "offset": 0
                   }
                 ]
@@ -132,7 +141,7 @@ jobs:
                 "board": "Seeed XIAO ESP32-C6",
                 "parts": [
                   {
-                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
+                    "path": "${PAGES_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
                     "offset": 0
                   }
                 ]
@@ -142,7 +151,7 @@ jobs:
                 "board": "Generic ESP32",
                 "parts": [
                   {
-                    "path": "${BASE_URL}/firmware-generic_esp32-${VERSION}.bin",
+                    "path": "${PAGES_URL}/firmware-generic_esp32-${VERSION}.bin",
                     "offset": 0
                   }
                 ]
@@ -155,10 +164,10 @@ jobs:
           {
             "version": "${VERSION}",
             "boards": {
-              "Seeed XIAO ESP32-C3": "${BASE_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
-              "Seeed XIAO ESP32-S3": "${BASE_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
-              "Seeed XIAO ESP32-C6": "${BASE_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
-              "Generic ESP32":       "${BASE_URL}/firmware-generic_esp32-${VERSION}.bin"
+              "Seeed XIAO ESP32-C3": "${RELEASES_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
+              "Seeed XIAO ESP32-S3": "${RELEASES_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
+              "Seeed XIAO ESP32-C6": "${RELEASES_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
+              "Generic ESP32":       "${RELEASES_URL}/firmware-generic_esp32-${VERSION}.bin"
             }
           }
           EOF
@@ -168,7 +177,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/manifest.json docs/version.json
-          git diff --staged --quiet || git commit -m "chore: update manifest.json and version.json for ${{ github.ref_name }}"
+          git diff --staged --quiet || git commit -m "chore: update manifests for ${{ github.ref_name }}"
           git push origin HEAD:main
 
       - name: Create GitHub Release
