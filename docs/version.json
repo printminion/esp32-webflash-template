@@ -1,0 +1,9 @@
+{
+  "version": "v0.0.0",
+  "boards": {
+    "Seeed XIAO ESP32-C3": "",
+    "Seeed XIAO ESP32-S3": "",
+    "Seeed XIAO ESP32-C6": "",
+    "Generic ESP32": ""
+  }
+}

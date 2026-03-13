@@ -17,6 +17,7 @@
 // ── Forward declarations ──────────────────────────────────
 void setupWifi();
 void setupOTA();
+void checkAndApplyUpdate();
 void blinkLed(int times, int delayMs = 200);
 
 // ─────────────────────────────────────────────────────────
@@ -30,6 +31,10 @@ void setup() {
 
 #ifdef FEATURE_WIFI_PROVISIONING
   setupWifi();
+#endif
+
+#ifdef FEATURE_VERSION_CHECK
+  checkAndApplyUpdate();  // check for OTA update before starting services
 #endif
 
 #ifdef FEATURE_OTA
