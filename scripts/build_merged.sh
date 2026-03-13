@@ -60,25 +60,53 @@ VERSION="dev-local"
 OUTPUT="${OUT_DIR}/firmware-${ENV}-${VERSION}.bin"
 
 # ── Dependency check ──────────────────────────────────────────────────────────
-if ! command -v pio &>/dev/null; then
-  echo "Error: 'pio' not found. Install PlatformIO: pip install platformio"
+# Locate pio — PlatformIO installs into a venv that may not be on PATH in Git Bash
+PIO=""
+for candidate in \
+    pio \
+    platformio \
+    "$USERPROFILE/.platformio/penv/Scripts/platformio" \
+    "$HOME/.platformio/penv/Scripts/platformio" \
+    "$HOME/.platformio/penv/bin/platformio"; do
+  if command -v "$candidate" &>/dev/null 2>&1; then
+    PIO="$candidate"
+    break
+  fi
+done
+if [[ -z "$PIO" ]]; then
+  echo "Error: PlatformIO not found. Install it: pip install platformio"
   exit 1
 fi
-if ! command -v esptool.py &>/dev/null; then
-  echo "esptool.py not found — installing..."
+
+# Locate esptool.py
+ESPTOOL=""
+for candidate in \
+    esptool.py \
+    esptool \
+    "$USERPROFILE/.platformio/penv/Scripts/esptool.py" \
+    "$HOME/.platformio/penv/Scripts/esptool.py" \
+    "$HOME/.platformio/penv/bin/esptool.py"; do
+  if command -v "$candidate" &>/dev/null 2>&1; then
+    ESPTOOL="$candidate"
+    break
+  fi
+done
+if [[ -z "$ESPTOOL" ]]; then
+  echo "esptool not found — installing..."
   pip install esptool
+  ESPTOOL="esptool.py"
 fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo ""
 echo "==> Building ${ENV}..."
-pio run -e "${ENV}"
+"$PIO" run -e "${ENV}"
 
 # ── Merge ─────────────────────────────────────────────────────────────────────
 mkdir -p "${OUT_DIR}"
 echo ""
 echo "==> Merging binary for ${CHIP_NAME} (bootloader @ ${BL_OFFSET})..."
-esptool.py --chip "${CHIP_NAME}" merge_bin \
+"$ESPTOOL" --chip "${CHIP_NAME}" merge_bin \
   -o "${OUTPUT}" \
   "${BL_OFFSET}" "${BUILD_DIR}/bootloader.bin" \
   0x8000              "${BUILD_DIR}/partitions.bin" \
@@ -92,7 +120,7 @@ echo "==> Merged binary: ${OUTPUT} (${SIZE})"
 if [[ -n "$FLASH_PORT" ]]; then
   echo ""
   echo "==> Flashing to ${FLASH_PORT}..."
-  esptool.py --chip "${CHIP_NAME}" --port "${FLASH_PORT}" --baud 921600 \
+  "$ESPTOOL" --chip "${CHIP_NAME}" --port "${FLASH_PORT}" --baud 921600 \
     write_flash 0x0 "${OUTPUT}"
   echo ""
   echo "==> Done. Monitor with: pio device monitor -p ${FLASH_PORT} -b 115200"
@@ -100,4 +128,5 @@ else
   echo ""
   echo "To flash manually:"
   echo "  esptool.py --chip ${CHIP_NAME} --port <PORT> --baud 921600 write_flash 0x0 ${OUTPUT}"
+  echo "  (or use the path found on this machine: ${ESPTOOL})"
 fi
