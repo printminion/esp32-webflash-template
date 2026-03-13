@@ -8,6 +8,9 @@
 # VSCode
 .vscode/
 
+# JetBrains IDEs (e.g., CLion, IntelliJ)
+.idea/
+
 # macOS
 .DS_Store
 
