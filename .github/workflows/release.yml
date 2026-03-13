@@ -45,6 +45,10 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Pre-install uv (required by pioarduino platform for ESP32-C6)
+        if: matrix.environment == 'seeed_xiao_esp32c6'
+        run: pip install uv
+
       - name: Inject firmware version
         run: |
           VERSION="${{ github.ref_name }}"
@@ -79,6 +83,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
+        with:
+          ref: main
+          fetch-depth: 1
 
       - name: Download all firmware artifacts
         uses: actions/download-artifact@v4.2.0
