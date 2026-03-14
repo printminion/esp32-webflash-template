@@ -23,8 +23,9 @@ void blinkLed(int times, int delayMs = 200);
 // ─────────────────────────────────────────────────────────
 void setup() {
   LOG_BEGIN(SERIAL_BAUD);
-  LOGF("Board    : %s", BOARD_NAME);
-  LOGF("Version  : %s", FIRMWARE_VERSION);
+  LOGF_STATUS("Project  : %s", PROJECT_NAME);
+  LOGF_STATUS("Board    : %s", BOARD_NAME);
+  LOGF_STATUS("Version  : %s", FIRMWARE_VERSION);
 
   pinMode(LED_PIN, OUTPUT);
   blinkLed(3);  // startup indication
@@ -41,7 +42,7 @@ void setup() {
   setupOTA();
 #endif
 
-  LOG("Setup complete");
+  LOG_STATUS("Setup complete");
 }
 
 void loop() {
