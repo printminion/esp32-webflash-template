@@ -1,4 +1,4 @@
-# esp32-webflash-template
+# ESP32 Webflash (Template)
 
 A multi-board ESP32 firmware template with a browser-based web installer powered by [ESP Web Tools](https://esphome.github.io/esp-web-tools/).
 
