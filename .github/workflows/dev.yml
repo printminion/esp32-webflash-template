@@ -13,25 +13,32 @@ on:
       - dev
 
 jobs:
+  setup:
+    name: Read board matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.read.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Build matrix from project.json
+        id: read
+        run: |
+          matrix=$(jq -c '[.boards[] | {
+            environment:       .id,
+            chip:              .chip,
+            bootloader_offset: .bootloaderOffset,
+            requires_uv:       .requiresUv
+          }]' project.json)
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build firmware
     runs-on: ubuntu-latest
+    needs: setup
 
     strategy:
       matrix:
-        include:
-          - environment: seeed_xiao_esp32c3
-            chip: esp32c3
-            bootloader_offset: "0x0"
-          - environment: seeed_xiao_esp32s3
-            chip: esp32s3
-            bootloader_offset: "0x0"
-          - environment: seeed_xiao_esp32c6
-            chip: esp32c6
-            bootloader_offset: "0x0"
-          - environment: generic_esp32
-            chip: esp32
-            bootloader_offset: "0x1000"
+        include: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Checkout repository
@@ -52,7 +59,7 @@ jobs:
         run: pip install platformio esptool
 
       - name: Pre-install uv (required by pioarduino platform for ESP32-C6)
-        if: matrix.environment == 'seeed_xiao_esp32c6'
+        if: matrix.requires_uv == true
         run: pip install uv
 
       - name: Compute version string
@@ -89,7 +96,7 @@ jobs:
   deploy:
     name: Deploy dev channel
     runs-on: ubuntu-latest
-    needs: build
+    needs: [setup, build]
 
     permissions:
       contents: write
@@ -118,58 +125,19 @@ jobs:
       - name: Generate dev manifest and copy firmware
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          BASE_URL="https://printminion.github.io/esp32-webflash-template/dev"
+          PROJECT_NAME=$(jq -r '.project.name' project.json)
+          BASE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/dev"
           mkdir -p docs/dev
 
-          cat > docs/dev/manifest.json << EOF
-          {
-            "name": "esp32-webflash-template",
-            "version": "${VERSION}",
-            "channel": "dev",
-            "builds": [
-              {
-                "chipFamily": "ESP32-C3",
-                "board": "Seeed XIAO ESP32-C3",
-                "parts": [
-                  {
-                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
-                    "offset": 0
-                  }
-                ]
-              },
-              {
-                "chipFamily": "ESP32-S3",
-                "board": "Seeed XIAO ESP32-S3",
-                "parts": [
-                  {
-                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
-                    "offset": 0
-                  }
-                ]
-              },
-              {
-                "chipFamily": "ESP32-C6",
-                "board": "Seeed XIAO ESP32-C6",
-                "parts": [
-                  {
-                    "path": "${BASE_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
-                    "offset": 0
-                  }
-                ]
-              },
-              {
-                "chipFamily": "ESP32",
-                "board": "Generic ESP32",
-                "parts": [
-                  {
-                    "path": "${BASE_URL}/firmware-generic_esp32-${VERSION}.bin",
-                    "offset": 0
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
+          BUILDS=$(jq -c --arg bu "$BASE_URL" --arg v "$VERSION" \
+            '[.boards[] | {chipFamily, board: .name,
+              parts: [{path: ($bu+"/firmware-"+.id+"-"+$v+".bin"), offset: 0}]
+            }]' project.json)
+
+          jq -n --arg name "$PROJECT_NAME" --arg version "$VERSION" \
+                 --arg channel "dev" --argjson builds "$BUILDS" \
+            '{name:$name,version:$version,channel:$channel,builds:$builds}' \
+            > docs/dev/manifest.json
 
           # Copy firmware binaries into docs/dev for Pages hosting
           cp firmware/*.bin docs/dev/
