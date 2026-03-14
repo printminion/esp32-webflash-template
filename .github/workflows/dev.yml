@@ -146,5 +146,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
-          keep_files: false
+          publish_dir: ./docs/dev
+          destination_dir: dev
+          keep_files: true
