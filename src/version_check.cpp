@@ -16,7 +16,9 @@
 #include <esp_idf_version.h>
 #include <esp_https_ota.h>
 #include <esp_ota_ops.h>
-#include <esp_crt_bundle.h>
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  #include <esp_crt_bundle.h>
+#endif
 #include "board_config.h"
 #include "logger.h"
 
@@ -119,7 +121,9 @@ void checkAndApplyUpdate() {
   cfg.url                       = firmwareUrl;
   cfg.transport_type            = HTTP_TRANSPORT_OVER_SSL;
   cfg.skip_cert_common_name_check = true;
-  cfg.crt_bundle_attach         = esp_crt_bundle_attach;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  cfg.crt_bundle_attach = esp_crt_bundle_attach;
+#endif
 
   esp_https_ota_config_t ota_cfg = {};
   ota_cfg.http_config = &cfg;
