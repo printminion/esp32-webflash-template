@@ -15,27 +15,32 @@ on:
       - 'v*'
 
 jobs:
+  setup:
+    name: Read board matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.read.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Build matrix from project.json
+        id: read
+        run: |
+          matrix=$(jq -c '[.boards[] | {
+            environment:       .id,
+            chip:              .chip,
+            bootloader_offset: .bootloaderOffset,
+            requires_uv:       .requiresUv
+          }]' project.json)
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build firmware
     runs-on: ubuntu-latest
+    needs: setup
 
     strategy:
       matrix:
-        include:
-          # chip: esptool chip name for merge_bin
-          # bootloader_offset: 0x0 for RISC-V (C3/S3/C6), 0x1000 for Xtensa ESP32
-          - environment: seeed_xiao_esp32c3
-            chip: esp32c3
-            bootloader_offset: "0x0"
-          - environment: seeed_xiao_esp32s3
-            chip: esp32s3
-            bootloader_offset: "0x0"
-          - environment: seeed_xiao_esp32c6
-            chip: esp32c6
-            bootloader_offset: "0x0"
-          - environment: generic_esp32
-            chip: esp32
-            bootloader_offset: "0x1000"
+        include: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Checkout repository
@@ -56,7 +61,7 @@ jobs:
         run: pip install platformio esptool
 
       - name: Pre-install uv (required by pioarduino platform for ESP32-C6)
-        if: matrix.environment == 'seeed_xiao_esp32c6'
+        if: matrix.requires_uv == true
         run: pip install uv
 
       - name: Inject firmware version
@@ -89,7 +94,7 @@ jobs:
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: build
+    needs: [setup, build]
 
     permissions:
       contents: write
@@ -121,99 +126,66 @@ jobs:
       - name: Generate manifest.json and version.json
         run: |
           VERSION="${{ github.ref_name }}"
+          PROJECT_NAME=$(jq -r '.project.name' project.json)
           # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled)
           PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/firmware/${VERSION}"
           # version.json: fetched by firmware via esp_https_ota — GitHub Releases URLs are fine
           RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
 
-          cat > docs/manifest.json << EOF
-          {
-            "name": "esp32-webflash-template",
-            "version": "${VERSION}",
-            "channel": "release",
-            "builds": [
-              {
-                "chipFamily": "ESP32-C3",
-                "board": "Seeed XIAO ESP32-C3",
-                "parts": [
-                  {
-                    "path": "${PAGES_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
-                    "offset": 0
-                  }
-                ]
-              },
-              {
-                "chipFamily": "ESP32-S3",
-                "board": "Seeed XIAO ESP32-S3",
-                "parts": [
-                  {
-                    "path": "${PAGES_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
-                    "offset": 0
-                  }
-                ]
-              },
-              {
-                "chipFamily": "ESP32-C6",
-                "board": "Seeed XIAO ESP32-C6",
-                "parts": [
-                  {
-                    "path": "${PAGES_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
-                    "offset": 0
-                  }
-                ]
-              },
-              {
-                "chipFamily": "ESP32",
-                "board": "Generic ESP32",
-                "parts": [
-                  {
-                    "path": "${PAGES_URL}/firmware-generic_esp32-${VERSION}.bin",
-                    "offset": 0
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
+          BUILDS=$(jq -c --arg pu "$PAGES_URL" --arg v "$VERSION" \
+            '[.boards[] | {chipFamily, board: .name,
+              parts: [{path: ($pu+"/firmware-"+.id+"-"+$v+".bin"), offset: 0}]
+            }]' project.json)
 
-          cat > docs/version.json << EOF
-          {
-            "version": "${VERSION}",
-            "boards": {
-              "Seeed XIAO ESP32-C3": "${RELEASES_URL}/firmware-seeed_xiao_esp32c3-${VERSION}.bin",
-              "Seeed XIAO ESP32-S3": "${RELEASES_URL}/firmware-seeed_xiao_esp32s3-${VERSION}.bin",
-              "Seeed XIAO ESP32-C6": "${RELEASES_URL}/firmware-seeed_xiao_esp32c6-${VERSION}.bin",
-              "Generic ESP32":       "${RELEASES_URL}/firmware-generic_esp32-${VERSION}.bin"
-            }
-          }
-          EOF
+          jq -n --arg name "$PROJECT_NAME" --arg version "$VERSION" \
+                 --arg channel "release" --argjson builds "$BUILDS" \
+            '{name:$name,version:$version,channel:$channel,builds:$builds}' \
+            > docs/manifest.json
 
-      - name: Commit updated manifest
+          BOARDS_JSON=$(jq -c --arg u "$RELEASES_URL" --arg v "$VERSION" \
+            '[.boards[] | {key:.name, value:($u+"/firmware-"+.id+"-"+$v+".bin")}] | from_entries' \
+            project.json)
+
+          jq -n --arg version "$VERSION" --argjson boards "$BOARDS_JSON" \
+            '{version:$version,boards:$boards}' \
+            > docs/version.json
+
+      - name: Generate boards_config.js
+        run: python scripts/generate_boards_config.py
+
+      - name: Commit updated manifests and boards config
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/manifest.json docs/version.json
+          git add docs/manifest.json docs/version.json docs/boards_config.js
           git diff --staged --quiet || git commit -m "chore: update manifests for ${{ github.ref_name }}"
           git push origin HEAD:main
+
+      - name: Generate release notes
+        run: |
+          VERSION="${{ github.ref_name }}"
+          PROJECT_NAME=$(jq -r '.project.name' project.json)
+          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          {
+            echo "## ${PROJECT_NAME} ${VERSION}"
+            echo ""
+            echo "### Flash via web installer"
+            echo "👉 ${PAGES_URL}"
+            echo ""
+            echo "### Supported boards"
+            echo "| Board | Firmware file |"
+            echo "|---|---|"
+            jq -r --arg v "$VERSION" \
+              '.boards[] | "| \(.name) | `firmware-\(.id)-\($v).bin` |"' \
+              project.json
+          } > release_notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          body: |
-            ## esp32-webflash-template ${{ github.ref_name }}
-
-            ### Flash via web installer
-            👉 https://printminion.github.io/esp32-webflash-template/
-
-            ### Supported boards
-            | Board | Firmware file |
-            |---|---|
-            | Seeed XIAO ESP32-C3 | `firmware-seeed_xiao_esp32c3-${{ github.ref_name }}.bin` |
-            | Seeed XIAO ESP32-S3 | `firmware-seeed_xiao_esp32s3-${{ github.ref_name }}.bin` |
-            | Seeed XIAO ESP32-C6 | `firmware-seeed_xiao_esp32c6-${{ github.ref_name }}.bin` |
-            | Generic ESP32 | `firmware-generic_esp32-${{ github.ref_name }}.bin` |
+          body_path: release_notes.md
           files: firmware/*.bin
           draft: false
           prerelease: false

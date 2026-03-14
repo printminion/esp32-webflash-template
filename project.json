@@ -1,0 +1,65 @@
+{
+  "$schema": "./schemas/project.schema.json",
+  "project": {
+    "name": "esp32-webflash-template",
+    "description": "Multi-board ESP32 firmware template with browser-based web installer"
+  },
+  "boards": [
+    {
+      "id": "seeed_xiao_esp32c3",
+      "name": "Seeed XIAO ESP32-C3",
+      "chip": "esp32c3",
+      "chipFamily": "ESP32-C3",
+      "bootloaderOffset": "0x0",
+      "platform": "espressif32",
+      "platformioBoard": "seeed_xiao_esp32c3",
+      "buildFlag": "BOARD_SEEED_XIAO_ESP32C3",
+      "partitionsFile": null,
+      "requiresUv": false,
+      "icon": "🟢",
+      "meta": "ESP32-C3 · RISC-V · 4MB Flash"
+    },
+    {
+      "id": "seeed_xiao_esp32s3",
+      "name": "Seeed XIAO ESP32-S3",
+      "chip": "esp32s3",
+      "chipFamily": "ESP32-S3",
+      "bootloaderOffset": "0x0",
+      "platform": "espressif32",
+      "platformioBoard": "seeed_xiao_esp32s3",
+      "buildFlag": "BOARD_SEEED_XIAO_ESP32S3",
+      "partitionsFile": null,
+      "requiresUv": false,
+      "icon": "🔵",
+      "meta": "ESP32-S3 · Xtensa · 8MB Flash · Camera ready"
+    },
+    {
+      "id": "seeed_xiao_esp32c6",
+      "name": "Seeed XIAO ESP32-C6",
+      "chip": "esp32c6",
+      "chipFamily": "ESP32-C6",
+      "bootloaderOffset": "0x0",
+      "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/stable/platform-espressif32.zip",
+      "platformioBoard": "seeed_xiao_esp32c6",
+      "buildFlag": "BOARD_SEEED_XIAO_ESP32C6",
+      "partitionsFile": "min_spiffs.csv",
+      "requiresUv": true,
+      "icon": "🟡",
+      "meta": "ESP32-C6 · RISC-V · WiFi 6 · Zigbee · Thread"
+    },
+    {
+      "id": "generic_esp32",
+      "name": "Generic ESP32",
+      "chip": "esp32",
+      "chipFamily": "ESP32",
+      "bootloaderOffset": "0x1000",
+      "platform": "espressif32",
+      "platformioBoard": "esp32dev",
+      "buildFlag": "BOARD_GENERIC_ESP32",
+      "partitionsFile": null,
+      "requiresUv": false,
+      "icon": "⚪",
+      "meta": "ESP32 · Xtensa Dual-core · DevKitC"
+    }
+  ]
+}

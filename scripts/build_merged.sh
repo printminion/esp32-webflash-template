@@ -10,37 +10,42 @@
 #   ./scripts/build_merged.sh seeed_xiao_esp32c6 --flash COM3
 #   ./scripts/build_merged.sh generic_esp32 --flash /dev/ttyUSB0
 #
-# Environments: seeed_xiao_esp32c3 | seeed_xiao_esp32s3 | seeed_xiao_esp32c6 | generic_esp32
+# Boards are read from project.json at the repository root.
 
 set -euo pipefail
 
-# ── Chip / bootloader-offset map (mirrors CI matrix) ─────────────────────────
-declare -A CHIP=(
-  [seeed_xiao_esp32c3]="esp32c3"
-  [seeed_xiao_esp32s3]="esp32s3"
-  [seeed_xiao_esp32c6]="esp32c6"
-  [generic_esp32]="esp32"
-)
-declare -A BOOTLOADER_OFFSET=(
-  [seeed_xiao_esp32c3]="0x0"
-  [seeed_xiao_esp32s3]="0x0"
-  [seeed_xiao_esp32c6]="0x0"
-  [generic_esp32]="0x1000"   # Xtensa ESP32 reserves 0x0–0xFFF for secure boot data
-)
+# ── Locate project.json ───────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_JSON="${SCRIPT_DIR}/../project.json"
+
+if [[ ! -f "$PROJECT_JSON" ]]; then
+  echo "Error: project.json not found at ${PROJECT_JSON}"
+  exit 1
+fi
+
+if ! command -v jq &>/dev/null; then
+  echo "Error: jq is required. Install it: https://stedolan.github.io/jq/download/"
+  exit 1
+fi
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 ENV="${1:-}"
 FLASH_PORT=""
 
 if [[ -z "$ENV" ]]; then
+  VALID=$(jq -r '[.boards[].id] | join(" | ")' "$PROJECT_JSON")
   echo "Usage: $0 <environment> [--flash <port>]"
-  echo "Environments: ${!CHIP[*]}"
+  echo "Environments: ${VALID}"
   exit 1
 fi
 
-if [[ -z "${CHIP[$ENV]+_}" ]]; then
+CHIP_NAME=$(jq -r --arg id "$ENV" '.boards[] | select(.id == $id) | .chip' "$PROJECT_JSON")
+BL_OFFSET=$(jq -r --arg id "$ENV" '.boards[] | select(.id == $id) | .bootloaderOffset' "$PROJECT_JSON")
+
+if [[ -z "$CHIP_NAME" || "$CHIP_NAME" == "null" ]]; then
+  VALID=$(jq -r '[.boards[].id] | join(" | ")' "$PROJECT_JSON")
   echo "Unknown environment: $ENV"
-  echo "Valid environments: ${!CHIP[*]}"
+  echo "Valid environments: ${VALID}"
   exit 1
 fi
 
@@ -51,9 +56,6 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
-
-CHIP_NAME="${CHIP[$ENV]}"
-BL_OFFSET="${BOOTLOADER_OFFSET[$ENV]}"
 BUILD_DIR=".pio/build/${ENV}"
 OUT_DIR="firmware"
 VERSION="dev-local"

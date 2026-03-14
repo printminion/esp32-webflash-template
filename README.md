@@ -4,6 +4,8 @@ A multi-board ESP32 firmware template with a browser-based web installer powered
 
 ## Supported Boards
 
+> The canonical board list lives in [`project.json`](project.json). The table below is derived from it.
+
 | Board | Environment |
 |---|---|
 | Seeed XIAO ESP32-C3 | `seeed_xiao_esp32c3` |
@@ -61,7 +63,10 @@ esp32-webflash-template/
 ├── .github/workflows/    # CI/CD
 │   ├── release.yml       # Build + publish on git tags
 │   └── dev.yml           # Build on dev branch push
-└── platformio.ini        # All board environments
+├── project.json          # Central config: project name + all board definitions
+├── platformio.ini        # Auto-generated from project.json
+└── schemas/
+    └── project.schema.json  # JSON Schema for project.json validation
 ```
 
 ## CI/CD
@@ -71,10 +76,16 @@ esp32-webflash-template/
 
 ## Adding a New Board
 
-1. Create `boards/<your_board>/board_config.h` with pin definitions and feature flags
-2. Add `[env:your_board]` and `[env:your_board-debug]` sections to `platformio.ini`
-3. Add the board `#ifdef` block in `src/main.cpp`
-4. Add the board entry to `docs/manifest.json`
+1. Add a new entry to the `boards` array in [`project.json`](project.json) — this is the single source of truth
+2. Create `boards/<your_board>/board_config.h` with pin definitions and feature flags
+3. Regenerate derived files from the new config:
+   ```bash
+   python scripts/generate_platformio.py   # updates platformio.ini
+   python scripts/generate_boards_config.py  # updates docs/boards_config.js
+   ```
+4. Commit all changed files together
+
+CI/CD picks up the new board automatically via the dynamic matrix in the workflows.
 
 ## License
 

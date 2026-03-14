@@ -8,6 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>ESP32 Web Flasher</title>
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <script src="boards_config.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -389,49 +390,7 @@
       </div>
 
       <div class="field-label">Select board</div>
-      <div class="board-list">
-
-        <label class="board-option" id="opt-c3">
-          <input type="radio" name="board" value="seeed_xiao_esp32c3" onchange="selectBoard(this)">
-          <div class="board-icon">🟢</div>
-          <div class="board-info">
-            <div class="board-name">Seeed XIAO ESP32-C3</div>
-            <div class="board-meta">ESP32-C3 · RISC-V · 4MB Flash</div>
-          </div>
-          <div class="board-check"></div>
-        </label>
-
-        <label class="board-option" id="opt-s3">
-          <input type="radio" name="board" value="seeed_xiao_esp32s3" onchange="selectBoard(this)">
-          <div class="board-icon">🔵</div>
-          <div class="board-info">
-            <div class="board-name">Seeed XIAO ESP32-S3</div>
-            <div class="board-meta">ESP32-S3 · Xtensa · 8MB Flash · Camera ready</div>
-          </div>
-          <div class="board-check"></div>
-        </label>
-
-        <label class="board-option" id="opt-c6">
-          <input type="radio" name="board" value="seeed_xiao_esp32c6" onchange="selectBoard(this)">
-          <div class="board-icon">🟡</div>
-          <div class="board-info">
-            <div class="board-name">Seeed XIAO ESP32-C6</div>
-            <div class="board-meta">ESP32-C6 · RISC-V · WiFi 6 · Zigbee · Thread</div>
-          </div>
-          <div class="board-check"></div>
-        </label>
-
-        <label class="board-option" id="opt-generic">
-          <input type="radio" name="board" value="generic_esp32" onchange="selectBoard(this)">
-          <div class="board-icon">⚪</div>
-          <div class="board-info">
-            <div class="board-name">Generic ESP32</div>
-            <div class="board-meta">ESP32 · Xtensa Dual-core · DevKitC</div>
-          </div>
-          <div class="board-check"></div>
-        </label>
-
-      </div>
+      <div class="board-list" id="board-list"></div>
 
       <div class="flash-wrap">
         <div class="no-board-hint" id="no-board-hint">← Pick a board to continue</div>
@@ -499,12 +458,27 @@
     loadManifest();
   }
 
+  function renderBoards() {
+    document.getElementById('board-list').innerHTML =
+      window.BOARDS_CONFIG.map(b =>
+        `<label class="board-option" id="opt-${b.id}">
+          <input type="radio" name="board" value="${b.id}" onchange="selectBoard(this)">
+          <div class="board-icon">${b.icon}</div>
+          <div class="board-info">
+            <div class="board-name">${b.name}</div>
+            <div class="board-meta">${b.meta}</div>
+          </div>
+          <div class="board-check"></div>
+        </label>`
+      ).join('');
+  }
+
   function selectBoard(radio) {
     boardValue = radio.value;
     document.querySelectorAll('.board-option').forEach(el => el.classList.remove('selected'));
     radio.closest('.board-option').classList.add('selected');
-    const labels = { seeed_xiao_esp32c3: 'XIAO C3', seeed_xiao_esp32s3: 'XIAO S3', seeed_xiao_esp32c6: 'XIAO C6', generic_esp32: 'Generic' };
-    document.getElementById('info-board').textContent = labels[boardValue] || boardValue;
+    const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
+    document.getElementById('info-board').textContent = board ? board.name.replace('Seeed XIAO ', 'XIAO ') : boardValue;
     updateInstallButton();
   }
 
@@ -518,14 +492,8 @@
       return;
     }
 
-    const boardManifestMap = {
-      seeed_xiao_esp32c3: 'Seeed XIAO ESP32-C3',
-      seeed_xiao_esp32s3: 'Seeed XIAO ESP32-S3',
-      seeed_xiao_esp32c6: 'Seeed XIAO ESP32-C6',
-      generic_esp32:      'Generic ESP32',
-    };
-
-    const build = manifest.builds?.find(b => b.board === boardManifestMap[boardValue]);
+    const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
+    const build = manifest.builds?.find(b => b.board === board?.name);
     if (!build) {
       hint.textContent   = 'Firmware not found for this board in manifest.';
       hint.style.display = 'block';
@@ -542,6 +510,7 @@
     btn.style.display  = 'block';
   }
 
+  renderBoards();
   loadManifest();
 </script>
 </body>
