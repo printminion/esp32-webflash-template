@@ -1,19 +1,29 @@
 #pragma once
 
 // ============================================================
-// logger.h — Debug logging macros
-// Compiles to nothing in release builds (NDEBUG defined)
+// logger.h — Logging macros
+//
+// LOG_STATUS / LOGF_STATUS — always active (debug + release).
+//   Use for user-facing status messages that must always appear.
+//
+// LOG / LOGF / LOG_RAW — debug only (DEBUG_BUILD defined).
+//   Use for verbose diagnostics that are silent in release builds.
 // ============================================================
 
 #include <Arduino.h>
 
+// Always-on: serial must be initialised first (LOG_BEGIN is always-on below)
+#define LOG_STATUS(msg)       Serial.println(msg)
+#define LOGF_STATUS(fmt, ...) Serial.printf(fmt "\n", ##__VA_ARGS__)
+
+// Serial initialisation — always runs so LOG_STATUS works in release builds
+#define LOG_BEGIN(baud) Serial.begin(baud)
+
 #ifdef DEBUG_BUILD
-  #define LOG_BEGIN(baud)   Serial.begin(baud)
-  #define LOG(msg)          Serial.println(msg)
-  #define LOGF(fmt, ...)    Serial.printf(fmt "\n", ##__VA_ARGS__)
-  #define LOG_RAW(msg)      Serial.print(msg)
+  #define LOG(msg)       Serial.println(msg)
+  #define LOGF(fmt, ...) Serial.printf(fmt "\n", ##__VA_ARGS__)
+  #define LOG_RAW(msg)   Serial.print(msg)
 #else
-  #define LOG_BEGIN(baud)
   #define LOG(msg)
   #define LOGF(fmt, ...)
   #define LOG_RAW(msg)
