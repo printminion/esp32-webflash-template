@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/printminion/esp32-webflash-template/main/schemas/project.schema.json",
+  "title": "ESP32 Project Configuration",
+  "description": "Central configuration for project metadata and board definitions. Edit project.json to add/remove boards or rename the project.",
+  "type": "object",
+  "required": ["project", "boards"],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "object",
+      "description": "Project-level metadata",
+      "required": ["name", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Short project identifier used in firmware build flags, manifests, and release titles",
+          "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+          "examples": ["my-esp32-project"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable project description shown in web installer and README",
+          "minLength": 1
+        }
+      }
+    },
+    "boards": {
+      "type": "array",
+      "description": "All supported target boards. Each entry drives the CI build matrix, platformio.ini env sections, and the web installer board list.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "chip",
+          "chipFamily",
+          "bootloaderOffset",
+          "platform",
+          "platformioBoard",
+          "buildFlag",
+          "partitionsFile",
+          "requiresUv",
+          "icon",
+          "meta"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "PlatformIO environment name. Used in firmware filenames: firmware-{id}-{version}.bin. Must be lowercase with underscores.",
+            "pattern": "^[a-z0-9][a-z0-9_]*[a-z0-9]$",
+            "examples": ["seeed_xiao_esp32c3", "generic_esp32"]
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable board name shown in the web installer and release notes",
+            "minLength": 1,
+            "examples": ["Seeed XIAO ESP32-C3", "Generic ESP32"]
+          },
+          "chip": {
+            "type": "string",
+            "description": "esptool chip name passed to esptool.py --chip",
+            "enum": [
+              "esp32",
+              "esp32c2",
+              "esp32c3",
+              "esp32c5",
+              "esp32c6",
+              "esp32h2",
+              "esp32p4",
+              "esp32s2",
+              "esp32s3"
+            ],
+            "examples": ["esp32c3", "esp32"]
+          },
+          "chipFamily": {
+            "type": "string",
+            "description": "ESP Web Tools chipFamily value used in manifest.json builds[].chipFamily",
+            "enum": [
+              "ESP32",
+              "ESP32-C2",
+              "ESP32-C3",
+              "ESP32-C5",
+              "ESP32-C6",
+              "ESP32-H2",
+              "ESP32-P4",
+              "ESP32-S2",
+              "ESP32-S3"
+            ],
+            "examples": ["ESP32-C3", "ESP32"]
+          },
+          "bootloaderOffset": {
+            "type": "string",
+            "description": "Bootloader flash offset passed to esptool merge_bin. Use '0x0' for RISC-V chips (C3/S3/C6), '0x1000' for Xtensa ESP32.",
+            "pattern": "^0x[0-9a-fA-F]+$",
+            "examples": ["0x0", "0x1000"]
+          },
+          "platform": {
+            "type": "string",
+            "description": "PlatformIO platform string or zip URL. Use 'espressif32' for standard chips, or a zip URL for unofficial forks (e.g. pioarduino for ESP32-C6).",
+            "minLength": 1,
+            "examples": [
+              "espressif32",
+              "https://github.com/pioarduino/platform-espressif32/releases/download/stable/platform-espressif32.zip"
+            ]
+          },
+          "platformioBoard": {
+            "type": "string",
+            "description": "PlatformIO board ID (the 'board =' value in platformio.ini). Usually matches 'id' but may differ (e.g. generic_esp32 uses esp32dev).",
+            "minLength": 1,
+            "examples": ["seeed_xiao_esp32c3", "esp32dev"]
+          },
+          "buildFlag": {
+            "type": "string",
+            "description": "C preprocessor #define symbol injected as -D {buildFlag} in platformio.ini build_flags. Use SCREAMING_SNAKE_CASE.",
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "examples": ["BOARD_SEEED_XIAO_ESP32C3", "BOARD_GENERIC_ESP32"]
+          },
+          "partitionsFile": {
+            "type": ["string", "null"],
+            "description": "Custom partition table CSV filename (relative to PlatformIO project root), or null to use the platform default.",
+            "examples": ["min_spiffs.csv", null]
+          },
+          "requiresUv": {
+            "type": "boolean",
+            "description": "Set true if the platform requires 'pip install uv' before building. Needed for pioarduino-based platforms (e.g. ESP32-C6)."
+          },
+          "icon": {
+            "type": "string",
+            "description": "Single emoji displayed next to the board name in the web installer UI",
+            "minLength": 1,
+            "examples": ["🟢", "🔵", "🟡", "⚪"]
+          },
+          "meta": {
+            "type": "string",
+            "description": "Short descriptor shown below the board name in the web installer (e.g. chip · arch · flash size)",
+            "minLength": 1,
+            "examples": ["ESP32-C3 · RISC-V · 4MB Flash"]
+          }
+        }
+      }
+    }
+  }
+}
