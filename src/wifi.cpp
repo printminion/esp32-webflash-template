@@ -9,8 +9,6 @@
 static WiFiManager wm;
 
 void setupWifi() {
-  LOG("Starting WiFi provisioning...");
-
   // Uncomment to reset saved credentials during development:
   // wm.resetSettings();
 
@@ -21,13 +19,19 @@ void setupWifi() {
   String apName = String("ESP32-") + String(FIRMWARE_VERSION)
                 + String("-") + String((uint32_t)ESP.getEfuseMac(), HEX);
 
+  LOG_STATUS("-- WiFi Setup ------------------------------------------");
+  LOGF_STATUS("Connect to WiFi AP : %s", apName.c_str());
+  LOG_STATUS("Then open          : http://192.168.4.1");
+  LOGF_STATUS("Portal closes in   : %d min", 3);
+  LOG_STATUS("--------------------------------------------------------");
+
   bool connected = wm.autoConnect(apName.c_str());
 
   if (!connected) {
-    LOGF("WiFi: failed to connect — restarting in 5s");
+    LOG_STATUS("WiFi: failed to connect — restarting in 5s");
     delay(5000);
     ESP.restart();
   }
 
-  LOGF("WiFi: connected, IP=%s", WiFi.localIP().toString().c_str());
+  LOGF_STATUS("WiFi: connected, IP=%s", WiFi.localIP().toString().c_str());
 }
