@@ -34,34 +34,23 @@ static WebServer server(80);
 #endif
 
 void setupOTA() {
+#if OTA_ENDPOINT_ACTIVE
   server.on("/", []() {
     server.send(200, "text/plain",
-      "Firmware: " FIRMWARE_VERSION "\nBoard: " BOARD_NAME "\n\n"
-#if OTA_ENDPOINT_ACTIVE
-      "Visit /update for OTA."
-#else
-      "OTA update endpoint is disabled (no credentials configured)."
-#endif
-    );
+      "Firmware: " FIRMWARE_VERSION "\nBoard: " BOARD_NAME "\n\nVisit /update for OTA.");
   });
-
-#if OTA_ENDPOINT_ACTIVE
   ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWORD);
   ElegantOTA.begin(&server);
-#endif
-
   server.begin();
-
-#if OTA_ENDPOINT_ACTIVE
   LOGF_STATUS("OTA: /update ready at http://%s/update", WiFi.localIP().toString().c_str());
 #else
-  LOG_STATUS("OTA: /update disabled — set OTA_USERNAME and OTA_PASSWORD in build_flags to enable.");
+  LOG_STATUS("OTA: web server not started — set OTA_USERNAME and OTA_PASSWORD in build_flags to enable.");
 #endif
 }
 
 void otaLoop() {
-  server.handleClient();
 #if OTA_ENDPOINT_ACTIVE
+  server.handleClient();
   ElegantOTA.loop();
 #endif
 }
