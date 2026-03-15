@@ -37,7 +37,7 @@ There are no automated tests — validation is done via CI builds on GitHub Acti
 ## Architecture
 
 ### Board-specific configuration via include paths
-Each PlatformIO environment adds `-I boards/<board>` to its build flags. This means `#include "board_config.h"` in any source file resolves to the correct board's header at compile time — no runtime conditionals needed. Adding a new board requires: a new `boards/<board>/board_config.h`, a new `[env:<board>]` in `platformio.ini`, and new matrix entries in both workflow files.
+Each PlatformIO environment adds `-I boards/<board>` to its build flags. This means `#include "board_config.h"` in any source file resolves to the correct board's header at compile time — no runtime conditionals needed. Adding a new board requires: a new entry in `project.json` (source of truth), a new `boards/<board>/board_config.h`, and regenerating `platformio.ini` via `python scripts/generate_platformio.py`. Both CI workflows build their matrix dynamically from `project.json` — no workflow file edits needed.
 
 ### Feature flags
 `board_config.h` defines `FEATURE_WIFI_PROVISIONING`, `FEATURE_OTA`, and `FEATURE_VERSION_CHECK`. These gate entire subsystems in `main.cpp`. All currently-supported boards enable all three.
