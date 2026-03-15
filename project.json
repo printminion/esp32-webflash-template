@@ -47,7 +47,7 @@
       "chip": "esp32c6",
       "chipFamily": "ESP32-C6",
       "bootloaderOffset": "0x0",
-      "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/stable/platform-espressif32.zip",
+      "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.37/platform-espressif32.zip",
       "platformioBoard": "seeed_xiao_esp32c6",
       "buildFlag": "BOARD_SEEED_XIAO_ESP32C6",
       "partitionsFile": "min_spiffs.csv",
