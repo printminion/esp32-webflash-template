@@ -76,8 +76,12 @@ void checkAndApplyUpdate() {
   client.setCACertBundle(x509_crt_bundle_start,
                          x509_crt_bundle_end - x509_crt_bundle_start);
 #else
-  // IDF < 5.0: no accessible CA bundle via Arduino API — fall back to insecure.
-  client.setInsecure();
+  // IDF < 5.0: no accessible CA bundle via Arduino API. Fail closed rather than
+  // silently skipping TLS verification. Set VERSION_CHECK_INSECURE=1 in
+  // build_flags to opt into unverified checks on this platform.
+  LOG_STATUS("VersionCheck: skipping — TLS CA bundle unavailable on IDF < 5.0.");
+  LOG_STATUS("Set VERSION_CHECK_INSECURE=1 in build_flags to override.");
+  return;
 #endif
 
   HTTPClient http;
