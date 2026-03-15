@@ -43,7 +43,7 @@ Each PlatformIO environment adds `-I boards/<board>` to its build flags. This me
 `board_config.h` defines `FEATURE_WIFI_PROVISIONING`, `FEATURE_OTA`, and `FEATURE_VERSION_CHECK`. These gate entire subsystems in `main.cpp`. All currently-supported boards enable all three.
 
 ### Logging system
-`include/logger.h` provides `LOG()`, `LOGF()`, `LOG_RAW()` macros. In release builds (`NDEBUG`), they compile to nothing. In debug builds (`DEBUG_BUILD`), they emit via Serial. Never use `Serial.print` directly.
+`include/logger.h` provides `LOG()`, `LOGF()`, `LOG_RAW()` macros. When `DEBUG_BUILD` is not defined they compile to nothing; when `DEBUG_BUILD` is defined they emit via Serial. Never use `Serial.print` directly.
 
 ### OTA channels (release vs dev)
 - **Release channel**: triggered by `v*` tags → builds inject version from tag, firmware binaries attached to GitHub Release, `docs/manifest.json` and `docs/version.json` updated on `main` branch
