@@ -35,13 +35,15 @@
 // ── Helpers ───────────────────────────────────────────────
 
 // Parse a semver string "vMAJOR.MINOR.PATCH" or "MAJOR.MINOR.PATCH"
-// into a single comparable uint32.  Non-release strings (e.g. "dev-abc")
-// return 0 so they never trigger an update.
-static uint32_t parseSemver(const char* s) {
-  if (!s) return 0;
+// into a single comparable uint32.  Sets *valid=false for non-release strings
+// (e.g. "dev-abc") so the caller can distinguish them from a real v0.0.0.
+static uint32_t parseSemver(const char* s, bool* valid) {
+  *valid = false;
+  if (!s || !*s) return 0;
   if (*s == 'v') s++;               // strip leading 'v'
   unsigned maj = 0, min = 0, pat = 0;
   if (sscanf(s, "%u.%u.%u", &maj, &min, &pat) != 3) return 0;
+  *valid = true;
   return (maj << 20) | (min << 10) | pat;
 }
 
@@ -98,14 +100,15 @@ void checkAndApplyUpdate() {
   LOGF_STATUS("VersionCheck: remote=%s local=%s", remoteVersion, FIRMWARE_VERSION);
 
   // ── 3. Compare versions ───────────────────────────────
-  uint32_t remote = parseSemver(remoteVersion);
-  uint32_t local  = parseSemver(FIRMWARE_VERSION);
+  bool remoteValid, localValid;
+  uint32_t remote = parseSemver(remoteVersion, &remoteValid);
+  uint32_t local  = parseSemver(FIRMWARE_VERSION, &localValid);
 
-  if (remote == 0) {
+  if (!remoteValid) {
     LOGF("VersionCheck: remote version is not a release tag — skipping");
     return;
   }
-  if (local == 0) {
+  if (!localValid) {
     LOG("VersionCheck: local version is a dev build — skipping auto-update");
     return;
   }
