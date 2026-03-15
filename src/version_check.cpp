@@ -31,7 +31,8 @@
 // TLS security for version check and OTA download.
 // VERSION_CHECK_INSECURE=0 (default): cert validation enabled.
 //   version.json fetch: uses built-in mbedTLS CA bundle on IDF 5.0+;
-//     falls back to insecure on older IDF where no accessible bundle exists.
+//     on older IDF, skips the check entirely (fails closed) — set
+//     VERSION_CHECK_INSECURE=1 to override.
 //   OTA download: uses built-in CA bundle on IDF 5.0+.
 // VERSION_CHECK_INSECURE=1: skips all TLS verification — never use in
 //   production (enables MITM/RCE). Set in build_flags for dev use only.
