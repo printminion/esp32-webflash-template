@@ -47,6 +47,9 @@ static uint32_t parseSemver(const char* s, bool* valid) {
   if (*s == 'v') s++;               // strip leading 'v'
   unsigned maj = 0, min = 0, pat = 0;
   if (sscanf(s, "%u.%u.%u", &maj, &min, &pat) != 3) return 0;
+  // Reject out-of-range components to prevent bitfield overflow:
+  // major: 12-bit (0–4095), minor/patch: 10-bit each (0–1023).
+  if (maj > 4095 || min > 1023 || pat > 1023) return 0;
   *valid = true;
   return (maj << 20) | (min << 10) | pat;
 }
