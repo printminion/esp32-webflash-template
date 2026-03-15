@@ -119,7 +119,7 @@ void checkAndApplyUpdate() {
   const char* firmwareUrl = doc["boards"][boardKey.c_str()];
 
   if (!remoteVersion || !firmwareUrl || firmwareUrl[0] == '\0') {
-    LOGF("VersionCheck: missing fields in version.json (board key: %s)", BOARD_NAME);
+    LOGF("VersionCheck: missing fields in version.json (board key: %s)", boardKey.c_str());
     return;
   }
 
