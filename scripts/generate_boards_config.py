@@ -17,6 +17,11 @@ PROJECT_JSON = ROOT / "project.json"
 OUT_FILE = ROOT / "docs" / "boards_config.js"
 
 
+def js(s: str) -> str:
+    """Return s as a JS string literal, preserving Unicode (emoji etc.)."""
+    return json.dumps(s, ensure_ascii=False)
+
+
 def main() -> None:
     config = json.loads(PROJECT_JSON.read_text(encoding="utf-8"))
     boards = config["boards"]
@@ -29,13 +34,14 @@ def main() -> None:
 
     for i, board in enumerate(boards):
         comma = "," if i < len(boards) - 1 else ""
-        # Escape any single quotes in string values
-        bid   = board["id"].replace('"', '\\"')
-        name  = board["name"].replace('"', '\\"')
-        icon  = board["icon"].replace('"', '\\"')
-        meta  = board["meta"].replace('"', '\\"')
+        # Use json.dumps for correct JS string literal escaping (handles
+        # backslashes, newlines, Unicode, etc. — not just double quotes).
+        bid   = js(board["id"])
+        name  = js(board["name"])
+        icon  = js(board["icon"])
+        meta  = js(board["meta"])
         lines.append(
-            f'  {{ id: "{bid}", name: "{name}", icon: "{icon}", meta: "{meta}" }}{comma}'
+            f'  {{ id: {bid}, name: {name}, icon: {icon}, meta: {meta} }}{comma}'
         )
 
     lines.append("];")
@@ -46,11 +52,11 @@ def main() -> None:
         lines.append("window.BRANDING_CONFIG = [")
         for i, link in enumerate(branding):
             comma = "," if i < len(branding) - 1 else ""
-            icon  = link["icon"].replace('"', '\\"')
-            label = link["label"].replace('"', '\\"')
-            url   = link["url"].replace('"', '\\"')
+            icon  = js(link["icon"])
+            label = js(link["label"])
+            url   = js(link["url"])
             lines.append(
-                f'  {{ icon: "{icon}", label: "{label}", url: "{url}" }}{comma}'
+                f'  {{ icon: {icon}, label: {label}, url: {url} }}{comma}'
             )
         lines.append("];")
 
@@ -58,20 +64,17 @@ def main() -> None:
     if installer:
         proj = config["project"]
 
-        def esc(s: str) -> str:
-            return s.replace('"', '\\"')
-
         lines += [
             "",
             "window.PROJECT_CONFIG = {",
-            f'  title:              "{esc(installer["title"])}",',
-            f'  h1:                 "{esc(installer["h1"])}",',
-            f'  subtitle:           "{esc(installer["subtitle"])}",',
-            f'  baseUrl:            "{esc(installer["baseUrl"])}",',
-            f'  githubUrl:          "{esc(installer["githubUrl"])}",',
-            f'  badgeText:          "{esc(installer.get("badgeText", "Web Installer"))}",',
-            f'  projectName:        "{esc(proj["name"])}",',
-            f'  projectDescription: "{esc(proj["description"])}"',
+            f'  title:              {js(installer["title"])},',
+            f'  h1:                 {js(installer["h1"])},',
+            f'  subtitle:           {js(installer["subtitle"])},',
+            f'  baseUrl:            {js(installer["baseUrl"])},',
+            f'  githubUrl:          {js(installer["githubUrl"])},',
+            f'  badgeText:          {js(installer.get("badgeText", "Web Installer"))},',
+            f'  projectName:        {js(proj["name"])},',
+            f'  projectDescription: {js(proj["description"])}',
             "};",
         ]
 
