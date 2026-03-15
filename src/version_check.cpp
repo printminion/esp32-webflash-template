@@ -123,7 +123,7 @@ void checkAndApplyUpdate() {
   const char* firmwareUrl = doc["boards"][boardKey.c_str()];
 
   if (!remoteVersion || !firmwareUrl || firmwareUrl[0] == '\0') {
-    LOGF("VersionCheck: missing fields in version.json (board key: %s)", boardKey.c_str());
+    LOGF_STATUS("VersionCheck: missing fields in version.json (board key: %s)", boardKey.c_str());
     return;
   }
 
@@ -135,11 +135,11 @@ void checkAndApplyUpdate() {
   uint32_t local  = parseSemver(FIRMWARE_VERSION, &localValid);
 
   if (!remoteValid) {
-    LOGF("VersionCheck: remote version is not a release tag — skipping");
+    LOGF_STATUS("VersionCheck: remote version '%s' is not a release tag — skipping", remoteVersion);
     return;
   }
   if (!localValid) {
-    LOG("VersionCheck: local version is a dev build — skipping auto-update");
+    LOG_STATUS("VersionCheck: local version is a dev build — skipping auto-update");
     return;
   }
   if (remote <= local) {
