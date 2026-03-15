@@ -5,11 +5,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WebServer.h>
-#include <ElegantOTA.h>
 #include "logger.h"
-
-static WebServer server(80);
 
 // OTA endpoint credentials — must be defined explicitly via build_flags:
 //   -D OTA_USERNAME='"youruser"' -D OTA_PASSWORD='"yourpass"'
@@ -21,6 +17,12 @@ static WebServer server(80);
   #define OTA_ENDPOINT_ACTIVE 1
 #else
   #define OTA_ENDPOINT_ACTIVE 0
+#endif
+
+#if OTA_ENDPOINT_ACTIVE
+#include <WebServer.h>
+#include <ElegantOTA.h>
+static WebServer server(80);
 #endif
 
 void setupOTA() {
