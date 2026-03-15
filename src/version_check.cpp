@@ -141,6 +141,8 @@ void checkAndApplyUpdate() {
   #endif
 #endif
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 1, 0)
+  // Streaming API (ESP-IDF 4.1+): progress reporting, graceful abort on failure.
   esp_https_ota_config_t ota_cfg = {};
   ota_cfg.http_config = &cfg;
 
@@ -174,4 +176,15 @@ void checkAndApplyUpdate() {
   } else {
     LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", finish_ret);
   }
+#else
+  // Legacy single-shot API (ESP-IDF < 4.1): no streaming progress.
+  esp_err_t ret = esp_https_ota(&cfg);
+  if (ret == ESP_OK) {
+    LOG_STATUS("OTA complete — rebooting");
+    delay(500);
+    esp_restart();
+  } else {
+    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", ret);
+  }
+#endif
 }
