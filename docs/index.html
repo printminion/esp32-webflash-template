@@ -511,9 +511,10 @@
 
     const singleManifest = { name: manifest.name, version: manifest.version, builds: [build] };
     const blob    = new Blob([JSON.stringify(singleManifest)], { type: 'application/json' });
-    const blobUrl = URL.createObjectURL(blob);
+    if (btn._blobUrl) URL.revokeObjectURL(btn._blobUrl);
+    btn._blobUrl = URL.createObjectURL(blob);
 
-    btn.setAttribute('manifest', blobUrl);
+    btn.setAttribute('manifest', btn._blobUrl);
     hint.style.display = 'none';
     btn.style.display  = 'block';
   }
