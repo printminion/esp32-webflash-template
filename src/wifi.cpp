@@ -24,7 +24,13 @@ void setupWifi() {
   snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x%02x%02x%02x",
            (uint8_t)(mac),       (uint8_t)(mac >> 8),  (uint8_t)(mac >> 16),
            (uint8_t)(mac >> 24), (uint8_t)(mac >> 32), (uint8_t)(mac >> 40));
-  String apName = String("ESP32-") + String(FIRMWARE_VERSION) + String("-") + String(macSuffix);
+  // WiFi SSIDs are limited to 32 bytes. Cap the version portion so the full
+  // 12-char MAC suffix (which guarantees uniqueness) is always preserved.
+  // Layout: "ESP32-" (6) + version (≤13) + "-" (1) + mac (12) = ≤32
+  constexpr int kMaxVersionLen = 32 - 6 - 1 - 12;  // 13
+  String versionStr = String(FIRMWARE_VERSION);
+  if (versionStr.length() > kMaxVersionLen) versionStr = versionStr.substring(0, kMaxVersionLen);
+  String apName = String("ESP32-") + versionStr + String("-") + String(macSuffix);
 
   LOG_STATUS("-- WiFi Setup ------------------------------------------");
   LOGF_STATUS("Connect to WiFi AP : %s", apName.c_str());
