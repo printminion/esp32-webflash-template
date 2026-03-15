@@ -15,9 +15,14 @@ void setupWifi() {
   wm.setConfigPortalTimeout(180);  // portal closes after 3 min if unused
   wm.setConnectTimeout(30);
 
-  // AP name shown to user during provisioning — includes firmware version for flash validation
-  String apName = String("ESP32-") + String(FIRMWARE_VERSION)
-                + String("-") + String((uint32_t)ESP.getEfuseMac(), HEX);
+  // AP name shown to user during provisioning — includes firmware version for flash validation.
+  // Use all 6 MAC bytes to guarantee uniqueness across devices.
+  uint64_t mac = ESP.getEfuseMac();
+  char macSuffix[13];
+  snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x%02x%02x%02x",
+           (uint8_t)(mac),       (uint8_t)(mac >> 8),  (uint8_t)(mac >> 16),
+           (uint8_t)(mac >> 24), (uint8_t)(mac >> 32), (uint8_t)(mac >> 40));
+  String apName = String("ESP32-") + String(FIRMWARE_VERSION) + String("-") + String(macSuffix);
 
   LOG_STATUS("-- WiFi Setup ------------------------------------------");
   LOGF_STATUS("Connect to WiFi AP : %s", apName.c_str());
