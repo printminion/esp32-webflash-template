@@ -51,6 +51,7 @@ lib_deps =
 build_flags =
     -D FIRMWARE_VERSION='"dev"'
     -D PROJECT_NAME='"{project_name}"'
+    -D VERSION_CHECK_URL='"{version_check_url}"'
     -D ARDUINO_LOOP_STACK_SIZE=8192
 """
 
@@ -101,8 +102,10 @@ def render_env(board: dict, debug: bool) -> str:
 
 
 def generate(config: dict) -> str:
-    project_name = config["project"]["name"]
-    boards       = config["boards"]
+    project_name      = config["project"]["name"]
+    installer_base    = config["installer"]["baseUrl"].rstrip("/")
+    version_check_url = f"{installer_base}/version.json"
+    boards            = config["boards"]
 
     parts = [HEADER.rstrip()]
 
@@ -111,7 +114,10 @@ def generate(config: dict) -> str:
     parts.append(PLATFORMIO_SECTION.rstrip() + "\n" + default_envs)
 
     # Shared [env]
-    parts.append(ENV_SHARED.format(project_name=project_name).rstrip())
+    parts.append(ENV_SHARED.format(
+        project_name=project_name,
+        version_check_url=version_check_url,
+    ).rstrip())
 
     # Per-board sections
     for board in boards:

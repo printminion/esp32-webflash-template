@@ -23,12 +23,13 @@
 #include "logger.h"
 
 // ── Configuration ─────────────────────────────────────────
+// VERSION_CHECK_URL must be set explicitly via build_flags or generate_platformio.py.
+// When unset the feature is disabled at runtime (no network call, no supply-chain risk).
+// Set in build_flags: -D VERSION_CHECK_URL='"https://your-domain/version.json"'
 #ifndef VERSION_CHECK_URL
-  #pragma message("VERSION_CHECK_URL is using the template default — devices will check " \
-                  "for updates from the template owner's infrastructure. Override in " \
-                  "build_flags: -D VERSION_CHECK_URL='\"https://your-domain/version.json\"'")
-  #define VERSION_CHECK_URL \
-    "https://printminion.github.io/esp32-webflash-template/version.json"
+  #pragma message("VERSION_CHECK_URL not set — version checking disabled at runtime. " \
+                  "Set in build_flags or re-run scripts/generate_platformio.py.")
+  #define VERSION_CHECK_URL ""
 #endif
 
 // TLS security for version check and OTA download.
@@ -76,6 +77,10 @@ static uint32_t parseSemver(const char* s, bool* valid) {
 // ── Public API ────────────────────────────────────────────
 
 void checkAndApplyUpdate() {
+  if (strlen(VERSION_CHECK_URL) == 0) {
+    LOG_STATUS("VersionCheck: VERSION_CHECK_URL not configured — skipping.");
+    return;
+  }
   LOG_STATUS("Checking for updates...");
   LOGF("VersionCheck: running firmware %s on %s", FIRMWARE_VERSION, BOARD_NAME);
 
