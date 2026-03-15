@@ -108,6 +108,11 @@ jobs:
           ref: main
           fetch-depth: 1
 
+      - name: Restore project.json from tag commit
+        # Manifests are generated from project.json; use the tag's copy (not
+        # main's) so the board list always matches the binaries that were built.
+        run: git show ${{ github.sha }}:project.json > project.json
+
       - name: Download all firmware artifacts
         uses: actions/download-artifact@v4.2.0
         with:
