@@ -50,7 +50,9 @@ static uint32_t parseSemver(const char* s, bool* valid) {
   if (!s || !*s) return 0;
   if (*s == 'v') s++;               // strip leading 'v'
   unsigned maj = 0, min = 0, pat = 0;
-  if (sscanf(s, "%u.%u.%u", &maj, &min, &pat) != 3) return 0;
+  int consumed = 0;
+  if (sscanf(s, "%u.%u.%u%n", &maj, &min, &pat, &consumed) != 3) return 0;
+  if (s[consumed] != '\0') return 0;  // reject suffixes: -rc1, +meta, etc.
   // Reject out-of-range components to prevent bitfield overflow:
   // major: 12-bit (0–4095), minor/patch: 10-bit each (0–1023).
   if (maj > 4095 || min > 1023 || pat > 1023) return 0;
