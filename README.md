@@ -10,6 +10,7 @@ A multi-board ESP32 firmware template with a browser-based web installer powered
 |---|---|
 | Seeed XIAO ESP32-C3 | `seeed_xiao_esp32c3` |
 | Seeed XIAO ESP32-S3 | `seeed_xiao_esp32s3` |
+| Seeed XIAO ESP32-C6 | `seeed_xiao_esp32c6` |
 | Generic ESP32 (DevKitC) | `generic_esp32` |
 
 Each board has a matching `-debug` environment with verbose serial logging enabled.
