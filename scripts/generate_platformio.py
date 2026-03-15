@@ -52,10 +52,6 @@ build_flags =
     -D FIRMWARE_VERSION='"dev"'
     -D PROJECT_NAME='"{project_name}"'
     -D ARDUINO_LOOP_STACK_SIZE=8192
-    ; OTA endpoint credentials — CHANGE BEFORE DEPLOYING to any shared network.
-    ; Override per-environment or via CLI: -D OTA_USERNAME='"user"' -D OTA_PASSWORD='"pass"'
-    -D OTA_USERNAME='"esp32"'
-    -D OTA_PASSWORD='"esp32"'
 """
 
 
@@ -93,6 +89,10 @@ def render_env(board: dict, debug: bool) -> str:
     if debug:
         lines.append("    -D DEBUG_BUILD")
         lines.append("    -D CORE_DEBUG_LEVEL=4")
+        # Convenience defaults for debug only. Release builds require explicit
+        # OTA_USERNAME and OTA_PASSWORD in build_flags (see src/ota.cpp).
+        lines.append("    -D OTA_USERNAME='\"esp32\"'")
+        lines.append("    -D OTA_PASSWORD='\"esp32\"'")
     else:
         lines.append("    -D NDEBUG")
 
