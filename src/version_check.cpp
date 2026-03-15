@@ -28,9 +28,13 @@
     "https://printminion.github.io/esp32-webflash-template/version.json"
 #endif
 
-// Accept any TLS cert from GitHub Pages (avoids bundling a root CA).
-// For production, replace with the ISRG Root X1 PEM.
-#define VERSION_CHECK_INSECURE 1
+// TLS security for version check and OTA download.
+// Default: secure (validates TLS certificates via the ESP-IDF CA bundle).
+// Override to 1 in platformio.ini build_flags for dev hardware without a
+// trusted CA bundle — never enable in production (enables MITM/RCE).
+#ifndef VERSION_CHECK_INSECURE
+  #define VERSION_CHECK_INSECURE 0
+#endif
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -126,12 +130,15 @@ void checkAndApplyUpdate() {
   LOGF_STATUS("Downloading update %s...", remoteVersion);
 
   esp_http_client_config_t cfg = {};
-  cfg.url                       = firmwareUrl;
-  cfg.transport_type            = HTTP_TRANSPORT_OVER_SSL;
+  cfg.url            = firmwareUrl;
+  cfg.transport_type = HTTP_TRANSPORT_OVER_SSL;
+  cfg.buffer_size    = 2048;  // GitHub CDN headers exceed the 512-byte default
+#if VERSION_CHECK_INSECURE
   cfg.skip_cert_common_name_check = true;
-  cfg.buffer_size               = 2048;  // GitHub CDN headers exceed the 512-byte default
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-  cfg.crt_bundle_attach = esp_crt_bundle_attach;
+#else
+  #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+    cfg.crt_bundle_attach = esp_crt_bundle_attach;
+  #endif
 #endif
 
   esp_https_ota_config_t ota_cfg = {};
