@@ -26,6 +26,44 @@
         }
       }
     },
+    "installer": {
+      "type": "object",
+      "description": "Web installer UI configuration. All fields drive docs/index.html via the generated window.PROJECT_CONFIG.",
+      "required": ["title", "h1", "subtitle", "baseUrl", "githubUrl"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Browser tab title (HTML <title> element).",
+          "minLength": 1
+        },
+        "h1": {
+          "type": "string",
+          "description": "Main heading text. May contain a literal <br> for a line break.",
+          "minLength": 1
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Subtitle paragraph shown below the h1.",
+          "minLength": 1
+        },
+        "baseUrl": {
+          "type": "string",
+          "description": "GitHub Pages base URL used for manifest fetching. No trailing slash.",
+          "format": "uri"
+        },
+        "githubUrl": {
+          "type": "string",
+          "description": "GitHub repository URL shown in the footer.",
+          "format": "uri"
+        },
+        "badgeText": {
+          "type": "string",
+          "description": "Small badge label in the page header. Defaults to 'Web Installer' if omitted.",
+          "minLength": 1
+        }
+      }
+    },
     "branding": {
       "type": "array",
       "description": "Optional social/support links shown in the web installer footer and README. Fork-friendly: replace these with your own links.",

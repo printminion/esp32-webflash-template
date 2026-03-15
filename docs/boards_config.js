@@ -12,3 +12,14 @@ window.BRANDING_CONFIG = [
   { icon: "🖨️", label: "3D Enclosures on Cults3D", url: "https://cults3d.com/@printminion" },
   { icon: "☕", label: "Buy Me a Coffee", url: "https://buymeacoffee.com/printminion" }
 ];
+
+window.PROJECT_CONFIG = {
+  title:              "ESP32 Web Flasher",
+  h1:                 "ESP32 Webflash<br>Template",
+  subtitle:           "Select your board, connect via USB and flash directly from your browser — no software required.",
+  baseUrl:            "https://printminion.github.io/esp32-webflash-template",
+  githubUrl:          "https://github.com/printminion/esp32-webflash-template",
+  badgeText:          "Web Installer",
+  projectName:        "esp32-webflash-template",
+  projectDescription: "Multi-board ESP32 firmware template with browser-based web installer"
+};
