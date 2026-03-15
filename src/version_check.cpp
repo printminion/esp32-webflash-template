@@ -121,6 +121,7 @@ void checkAndApplyUpdate() {
   cfg.url                       = firmwareUrl;
   cfg.transport_type            = HTTP_TRANSPORT_OVER_SSL;
   cfg.skip_cert_common_name_check = true;
+  cfg.buffer_size               = 2048;  // GitHub CDN headers exceed the 512-byte default
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   cfg.crt_bundle_attach = esp_crt_bundle_attach;
 #endif
