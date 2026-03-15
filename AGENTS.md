@@ -55,7 +55,9 @@ The web installer at `docs/index.html` switches between channels dynamically. `d
 `seeed_xiao_esp32c6` uses the [pioarduino fork](https://github.com/pioarduino/platform-espressif32) instead of the official `espressif32` platform because the official platform lacks Arduino framework support for C6. This also requires `uv` to be pre-installed in CI (`pip install uv`). All other boards use `platform = espressif32`.
 
 ### esp_https_ota API compatibility
-`src/version_check.cpp` uses `#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 1, 0)` to branch between the old (`esp_http_client_config_t*`) and new (`esp_https_ota_config_t*`) API signatures. The official `espressif32` platform (used by `generic_esp32`) ships an older ESP-IDF.
+`src/version_check.cpp` uses two `ESP_IDF_VERSION` guards:
+- `>= ESP_IDF_VERSION_VAL(4, 1, 0)` — selects between the streaming `esp_https_ota_begin/perform/finish` API (4.1+) and the legacy single-shot `esp_https_ota()` API.
+- `>= ESP_IDF_VERSION_VAL(5, 0, 0)` — attaches the ESP-IDF CA bundle (`esp_crt_bundle_attach`) for TLS certificate validation without a hard-coded PEM.
 
 ## CI/CD
 

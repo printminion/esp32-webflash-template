@@ -28,20 +28,32 @@
     "https://printminion.github.io/esp32-webflash-template/version.json"
 #endif
 
-// Accept any TLS cert from GitHub Pages (avoids bundling a root CA).
-// For production, replace with the ISRG Root X1 PEM.
-#define VERSION_CHECK_INSECURE 1
+// TLS security for version check and OTA download.
+// VERSION_CHECK_INSECURE=0 (default): cert validation enabled.
+//   version.json fetch: uses built-in mbedTLS CA bundle on IDF 5.0+;
+//     falls back to insecure on older IDF where no accessible bundle exists.
+//   OTA download: uses built-in CA bundle on IDF 5.0+.
+// VERSION_CHECK_INSECURE=1: skips all TLS verification — never use in
+//   production (enables MITM/RCE). Set in build_flags for dev use only.
+#ifndef VERSION_CHECK_INSECURE
+  #define VERSION_CHECK_INSECURE 0
+#endif
 
 // ── Helpers ───────────────────────────────────────────────
 
 // Parse a semver string "vMAJOR.MINOR.PATCH" or "MAJOR.MINOR.PATCH"
-// into a single comparable uint32.  Non-release strings (e.g. "dev-abc")
-// return 0 so they never trigger an update.
-static uint32_t parseSemver(const char* s) {
-  if (!s) return 0;
+// into a single comparable uint32.  Sets *valid=false for non-release strings
+// (e.g. "dev-abc") so the caller can distinguish them from a real v0.0.0.
+static uint32_t parseSemver(const char* s, bool* valid) {
+  *valid = false;
+  if (!s || !*s) return 0;
   if (*s == 'v') s++;               // strip leading 'v'
   unsigned maj = 0, min = 0, pat = 0;
   if (sscanf(s, "%u.%u.%u", &maj, &min, &pat) != 3) return 0;
+  // Reject out-of-range components to prevent bitfield overflow:
+  // major: 12-bit (0–4095), minor/patch: 10-bit each (0–1023).
+  if (maj > 4095 || min > 1023 || pat > 1023) return 0;
+  *valid = true;
   return (maj << 20) | (min << 10) | pat;
 }
 
@@ -55,6 +67,21 @@ void checkAndApplyUpdate() {
   WiFiClientSecure client;
 #if VERSION_CHECK_INSECURE
   client.setInsecure();
+#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  // IDF 5.0+ (Arduino-ESP32 3.x): attach the built-in mbedTLS CA bundle.
+  // setCACertBundle(ptr, size) requires both start and end linker symbols.
+  // CONFIG_MBEDTLS_CERTIFICATE_BUNDLE is enabled by default in Arduino builds.
+  extern const uint8_t x509_crt_bundle_start[] asm("_binary_x509_crt_bundle_start");
+  extern const uint8_t x509_crt_bundle_end[]   asm("_binary_x509_crt_bundle_end");
+  client.setCACertBundle(x509_crt_bundle_start,
+                         x509_crt_bundle_end - x509_crt_bundle_start);
+#else
+  // IDF < 5.0: no accessible CA bundle via Arduino API. Fail closed rather than
+  // silently skipping TLS verification. Set VERSION_CHECK_INSECURE=1 in
+  // build_flags to opt into unverified checks on this platform.
+  LOG_STATUS("VersionCheck: skipping — TLS CA bundle unavailable on IDF < 5.0.");
+  LOG_STATUS("Set VERSION_CHECK_INSECURE=1 in build_flags to override.");
+  return;
 #endif
 
   HTTPClient http;
@@ -88,25 +115,31 @@ void checkAndApplyUpdate() {
   }
 
   const char* remoteVersion = doc["version"];
-  const char* firmwareUrl   = doc["boards"][BOARD_NAME];
 
-  if (!remoteVersion || !firmwareUrl) {
-    LOGF("VersionCheck: missing fields in version.json (board key: %s)", BOARD_NAME);
+  // Debug builds append " (debug)" to BOARD_NAME, but version.json uses the
+  // release name as the key. Strip the suffix so lookups succeed in both modes.
+  String boardKey = BOARD_NAME;
+  if (boardKey.endsWith(" (debug)")) boardKey.remove(boardKey.length() - 8);
+  const char* firmwareUrl = doc["boards"][boardKey.c_str()];
+
+  if (!remoteVersion || !firmwareUrl || firmwareUrl[0] == '\0') {
+    LOGF_STATUS("VersionCheck: missing fields in version.json (board key: %s)", boardKey.c_str());
     return;
   }
 
   LOGF_STATUS("VersionCheck: remote=%s local=%s", remoteVersion, FIRMWARE_VERSION);
 
   // ── 3. Compare versions ───────────────────────────────
-  uint32_t remote = parseSemver(remoteVersion);
-  uint32_t local  = parseSemver(FIRMWARE_VERSION);
+  bool remoteValid, localValid;
+  uint32_t remote = parseSemver(remoteVersion, &remoteValid);
+  uint32_t local  = parseSemver(FIRMWARE_VERSION, &localValid);
 
-  if (remote == 0) {
-    LOGF("VersionCheck: remote version is not a release tag — skipping");
+  if (!remoteValid) {
+    LOGF_STATUS("VersionCheck: remote version '%s' is not a release tag — skipping", remoteVersion);
     return;
   }
-  if (local == 0) {
-    LOG("VersionCheck: local version is a dev build — skipping auto-update");
+  if (!localValid) {
+    LOG_STATUS("VersionCheck: local version is a dev build — skipping auto-update");
     return;
   }
   if (remote <= local) {
@@ -118,14 +151,19 @@ void checkAndApplyUpdate() {
   LOGF_STATUS("Downloading update %s...", remoteVersion);
 
   esp_http_client_config_t cfg = {};
-  cfg.url                       = firmwareUrl;
-  cfg.transport_type            = HTTP_TRANSPORT_OVER_SSL;
+  cfg.url            = firmwareUrl;
+  cfg.transport_type = HTTP_TRANSPORT_OVER_SSL;
+  cfg.buffer_size    = 2048;  // GitHub CDN headers exceed the 512-byte default
+#if VERSION_CHECK_INSECURE
   cfg.skip_cert_common_name_check = true;
-  cfg.buffer_size               = 2048;  // GitHub CDN headers exceed the 512-byte default
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-  cfg.crt_bundle_attach = esp_crt_bundle_attach;
+#else
+  #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+    cfg.crt_bundle_attach = esp_crt_bundle_attach;
+  #endif
 #endif
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 1, 0)
+  // Streaming API (ESP-IDF 4.1+): progress reporting, graceful abort on failure.
   esp_https_ota_config_t ota_cfg = {};
   ota_cfg.http_config = &cfg;
 
@@ -159,4 +197,15 @@ void checkAndApplyUpdate() {
   } else {
     LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", finish_ret);
   }
+#else
+  // Legacy single-shot API (ESP-IDF < 4.1): no streaming progress.
+  esp_err_t ret = esp_https_ota(&cfg);
+  if (ret == ESP_OK) {
+    LOG_STATUS("OTA complete — rebooting");
+    delay(500);
+    esp_restart();
+  } else {
+    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", ret);
+  }
+#endif
 }

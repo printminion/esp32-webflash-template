@@ -158,7 +158,7 @@
           },
           "bootloaderOffset": {
             "type": "string",
-            "description": "Bootloader flash offset passed to esptool merge_bin. Use '0x0' for RISC-V chips (C3/S3/C6), '0x1000' for Xtensa ESP32.",
+            "description": "Bootloader flash offset passed to esptool merge_bin. Use '0x0' for C3/S3/C6 chips, '0x1000' for classic ESP32 (esp32dev).",
             "pattern": "^0x[0-9a-fA-F]+$",
             "examples": ["0x0", "0x1000"]
           },
