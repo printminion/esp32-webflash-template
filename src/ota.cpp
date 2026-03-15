@@ -11,20 +11,10 @@
 
 static WebServer server(80);
 
-// OTA endpoint credentials.
-// In DEBUG_BUILD, "esp32"/"esp32" defaults are provided for convenience.
-// In release builds, define OTA_USERNAME and OTA_PASSWORD via build_flags to
-// enable the /update endpoint. Without explicit credentials the endpoint is
-// disabled entirely, preventing an open update surface on the LAN.
+// OTA endpoint credentials — must be defined explicitly via build_flags:
 //   -D OTA_USERNAME='"youruser"' -D OTA_PASSWORD='"yourpass"'
-#ifdef DEBUG_BUILD
-  #ifndef OTA_USERNAME
-    #define OTA_USERNAME "esp32"
-  #endif
-  #ifndef OTA_PASSWORD
-    #define OTA_PASSWORD "esp32"
-  #endif
-#endif
+// No defaults are provided in any build type so OTA is always opt-in.
+// The endpoint is disabled (port 80 never opened) until both are set.
 
 // Endpoint is active only when credentials are available.
 #if defined(OTA_USERNAME) && defined(OTA_PASSWORD)
