@@ -224,7 +224,23 @@
       box-shadow: 0 0 0 1px rgba(0,212,255,0.15);
     }
 
-    .board-option input[type="radio"] { display: none; }
+    /* Visually hidden but accessible — keeps inputs in the a11y tree so
+       keyboard users and screen readers can interact with board selection. */
+    .board-option input[type="radio"] {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Visible focus ring for keyboard navigation */
+    .board-option:focus-within {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
 
     .board-icon {
       width: 36px; height: 36px;
