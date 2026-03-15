@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include <WiFiManager.h>
+#include <WiFi.h>
 #include "logger.h"
 
 static WiFiManager wm;
