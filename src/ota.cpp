@@ -36,7 +36,13 @@ static WebServer server(80);
 void setupOTA() {
   server.on("/", []() {
     server.send(200, "text/plain",
-      "Firmware: " FIRMWARE_VERSION "\nBoard: " BOARD_NAME "\n\nVisit /update for OTA.");
+      "Firmware: " FIRMWARE_VERSION "\nBoard: " BOARD_NAME "\n\n"
+#if OTA_ENDPOINT_ACTIVE
+      "Visit /update for OTA."
+#else
+      "OTA update endpoint is disabled (no credentials configured)."
+#endif
+    );
   });
 
 #if OTA_ENDPOINT_ACTIVE
