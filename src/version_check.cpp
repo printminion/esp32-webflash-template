@@ -29,9 +29,12 @@
 #endif
 
 // TLS security for version check and OTA download.
-// Default: secure (validates TLS certificates via the ESP-IDF CA bundle).
-// Override to 1 in platformio.ini build_flags for dev hardware without a
-// trusted CA bundle — never enable in production (enables MITM/RCE).
+// VERSION_CHECK_INSECURE=0 (default): cert validation enabled.
+//   version.json fetch: uses built-in mbedTLS CA bundle on IDF 5.0+;
+//     falls back to insecure on older IDF where no accessible bundle exists.
+//   OTA download: uses built-in CA bundle on IDF 5.0+.
+// VERSION_CHECK_INSECURE=1: skips all TLS verification — never use in
+//   production (enables MITM/RCE). Set in build_flags for dev use only.
 #ifndef VERSION_CHECK_INSECURE
   #define VERSION_CHECK_INSECURE 0
 #endif
@@ -63,6 +66,14 @@ void checkAndApplyUpdate() {
   // ── 1. Fetch version.json ──────────────────────────────
   WiFiClientSecure client;
 #if VERSION_CHECK_INSECURE
+  client.setInsecure();
+#elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  // IDF 5.0+ (Arduino-ESP32 3.x): attach the built-in mbedTLS CA bundle.
+  // CONFIG_MBEDTLS_CERTIFICATE_BUNDLE is enabled by default in Arduino builds.
+  extern const uint8_t x509_crt_bundle_start[] asm("_binary_x509_crt_bundle_start");
+  client.setCACertBundle(x509_crt_bundle_start);
+#else
+  // IDF < 5.0: no accessible CA bundle via Arduino API — fall back to insecure.
   client.setInsecure();
 #endif
 
