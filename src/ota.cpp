@@ -11,15 +11,26 @@
 
 static WebServer server(80);
 
-// OTA endpoint credentials. Override via build_flags in platformio.ini:
+// OTA endpoint credentials.
+// In DEBUG_BUILD, "esp32"/"esp32" defaults are provided for convenience.
+// In release builds, define OTA_USERNAME and OTA_PASSWORD via build_flags to
+// enable the /update endpoint. Without explicit credentials the endpoint is
+// disabled entirely, preventing an open update surface on the LAN.
 //   -D OTA_USERNAME='"youruser"' -D OTA_PASSWORD='"yourpass"'
-// Defaults ("esp32"/"esp32") are provided so the template builds out of the box.
-// Change these in project.json (and re-run generate_platformio.py) before deploying.
-#ifndef OTA_USERNAME
-  #define OTA_USERNAME "esp32"
+#ifdef DEBUG_BUILD
+  #ifndef OTA_USERNAME
+    #define OTA_USERNAME "esp32"
+  #endif
+  #ifndef OTA_PASSWORD
+    #define OTA_PASSWORD "esp32"
+  #endif
 #endif
-#ifndef OTA_PASSWORD
-  #define OTA_PASSWORD "esp32"
+
+// Endpoint is active only when credentials are available.
+#if defined(OTA_USERNAME) && defined(OTA_PASSWORD)
+  #define OTA_ENDPOINT_ACTIVE 1
+#else
+  #define OTA_ENDPOINT_ACTIVE 0
 #endif
 
 void setupOTA() {
@@ -28,14 +39,23 @@ void setupOTA() {
       "Firmware: " FIRMWARE_VERSION "\nBoard: " BOARD_NAME "\n\nVisit /update for OTA.");
   });
 
+#if OTA_ENDPOINT_ACTIVE
   ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWORD);
   ElegantOTA.begin(&server);
+#endif
+
   server.begin();
 
-  LOGF_STATUS("OTA: ready at http://%s/update", WiFi.localIP().toString().c_str());
+#if OTA_ENDPOINT_ACTIVE
+  LOGF_STATUS("OTA: /update ready at http://%s/update", WiFi.localIP().toString().c_str());
+#else
+  LOG_STATUS("OTA: /update disabled — set OTA_USERNAME and OTA_PASSWORD in build_flags to enable.");
+#endif
 }
 
 void otaLoop() {
   server.handleClient();
+#if OTA_ENDPOINT_ACTIVE
   ElegantOTA.loop();
+#endif
 }

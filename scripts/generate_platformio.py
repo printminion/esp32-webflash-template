@@ -89,13 +89,12 @@ def render_env(board: dict, debug: bool) -> str:
     if debug:
         lines.append("    -D DEBUG_BUILD")
         lines.append("    -D CORE_DEBUG_LEVEL=4")
+        # Convenience OTA credentials for debug. Release builds require explicit
+        # OTA_USERNAME and OTA_PASSWORD to activate /update (see src/ota.cpp).
+        lines.append("    -D OTA_USERNAME='\"esp32\"'")
+        lines.append("    -D OTA_PASSWORD='\"esp32\"'")
     else:
         lines.append("    -D NDEBUG")
-
-    # OTA credentials — same defaults in both release and debug.
-    # Override with secure values for production deployments.
-    lines.append("    -D OTA_USERNAME='\"esp32\"'")
-    lines.append("    -D OTA_PASSWORD='\"esp32\"'")
 
     lines.append(f"    -I boards/{bid}")
 
