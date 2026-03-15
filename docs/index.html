@@ -523,6 +523,7 @@
     const btn  = document.getElementById('install-btn');
 
     if (!boardValue || !manifest) {
+      if (btn._blobUrl) { URL.revokeObjectURL(btn._blobUrl); btn._blobUrl = null; }
       hint.textContent   = '← Pick a board to continue';
       hint.style.display = 'block';
       btn.style.display  = 'none';
@@ -532,6 +533,7 @@
     const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
     const build = manifest.builds?.find(b => b.board === board?.name);
     if (!build) {
+      if (btn._blobUrl) { URL.revokeObjectURL(btn._blobUrl); btn._blobUrl = null; }
       hint.textContent   = 'Firmware not found for this board in manifest.';
       hint.style.display = 'block';
       btn.style.display  = 'none';
