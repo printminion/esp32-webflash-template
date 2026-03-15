@@ -4,6 +4,7 @@
 // ============================================================
 
 #include <Arduino.h>
+#include <WiFi.h>
 #include <WebServer.h>
 #include <ElegantOTA.h>
 #include "logger.h"
@@ -19,7 +20,7 @@ void setupOTA() {
   ElegantOTA.begin(&server);
   server.begin();
 
-  LOGF("OTA: ready at http://%s/update", WiFi.localIP().toString().c_str());
+  LOGF_STATUS("OTA: ready at http://%s/update", WiFi.localIP().toString().c_str());
 }
 
 void otaLoop() {
