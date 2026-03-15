@@ -552,10 +552,19 @@
   loadManifest();
 
   if (window.BRANDING_CONFIG?.length) {
-    document.getElementById('branding-links').innerHTML =
-      BRANDING_CONFIG.map(b =>
-        `<a href="${b.url}" target="_blank" rel="noopener noreferrer">${b.icon} ${b.label}</a>`
-      ).join(' · ');
+    const brandingEl = document.getElementById('branding-links');
+    BRANDING_CONFIG.forEach((b, i) => {
+      if (i > 0) brandingEl.appendChild(document.createTextNode(' · '));
+      const a = document.createElement('a');
+      try {
+        const parsed = new URL(b.url);
+        if (parsed.protocol === 'https:' || parsed.protocol === 'http:') a.href = b.url;
+      } catch { /* invalid URL — leave href unset */ }
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = `${b.icon} ${b.label}`;
+      brandingEl.appendChild(a);
+    });
   }
 </script>
 </body>
