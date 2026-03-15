@@ -40,6 +40,20 @@ def main() -> None:
 
     lines.append("];")
 
+    branding = config.get("branding", [])
+    if branding:
+        lines.append("")
+        lines.append("window.BRANDING_CONFIG = [")
+        for i, link in enumerate(branding):
+            comma = "," if i < len(branding) - 1 else ""
+            icon  = link["icon"].replace('"', '\\"')
+            label = link["label"].replace('"', '\\"')
+            url   = link["url"].replace('"', '\\"')
+            lines.append(
+                f'  {{ icon: "{icon}", label: "{label}", url: "{url}" }}{comma}'
+            )
+        lines.append("];")
+
     OUT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote {OUT_FILE.relative_to(ROOT)}")
 

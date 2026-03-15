@@ -1,4 +1,4 @@
-# esp32-webflash-template
+# ESP32 Webflash (Template)
 
 A multi-board ESP32 firmware template with a browser-based web installer powered by [ESP Web Tools](https://esphome.github.io/esp-web-tools/).
 
@@ -86,6 +86,12 @@ esp32-webflash-template/
 4. Commit all changed files together
 
 CI/CD picks up the new board automatically via the dynamic matrix in the workflows.
+
+## Connect & Support
+
+- 🐦 **Follow on X/Twitter:** [@printminion](https://x.com/printminion)
+- 🖨️ **3D Enclosures:** [Custom 3D printed enclosures for DIY modules on Cults3D](https://cults3d.com/@printminion)
+- ☕ **Buy Me a Coffee:** [buymeacoffee.com/printminion](https://buymeacoffee.com/printminion)
 
 ## License
 
