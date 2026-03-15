@@ -111,7 +111,12 @@ fi
 # ── Build ─────────────────────────────────────────────────────────────────────
 # Inject FIRMWARE_VERSION so the compiled binary reports the same version string
 # as the output filename (mirrors what CI does via sed on platformio.ini).
-# Use a trap to restore platformio.ini even if the build fails.
+# Back up platformio.ini to a temp file and restore it on exit — using git checkout
+# would silently discard any uncommitted local edits the developer may have.
+PLATFORMIO_BACKUP=$(mktemp)
+cp platformio.ini "$PLATFORMIO_BACKUP"
+trap 'cp "$PLATFORMIO_BACKUP" platformio.ini; rm -f "$PLATFORMIO_BACKUP"' EXIT
+
 echo ""
 echo "==> Injecting firmware version: ${VERSION}"
 # sed -i behaves differently on GNU (Linux/CI) vs BSD (macOS): GNU omits the
@@ -121,7 +126,6 @@ if sed --version 2>&1 | grep -q GNU; then
 else
   sed -i '' "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
 fi
-trap 'git checkout -- platformio.ini 2>/dev/null || true' EXIT
 
 echo "==> Building ${ENV}..."
 "$PIO" run -e "${ENV}"
