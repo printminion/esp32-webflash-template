@@ -8,11 +8,13 @@
 
 static WiFiManager wm;
 
+static constexpr int kPortalTimeoutSec = 180;
+
 void setupWifi() {
   // Uncomment to reset saved credentials during development:
   // wm.resetSettings();
 
-  wm.setConfigPortalTimeout(180);  // portal closes after 3 min if unused
+  wm.setConfigPortalTimeout(kPortalTimeoutSec);
   wm.setConnectTimeout(30);
 
   // AP name shown to user during provisioning — includes firmware version for flash validation.
@@ -27,7 +29,7 @@ void setupWifi() {
   LOG_STATUS("-- WiFi Setup ------------------------------------------");
   LOGF_STATUS("Connect to WiFi AP : %s", apName.c_str());
   LOG_STATUS("Then open          : http://192.168.4.1");
-  LOGF_STATUS("Portal closes in   : %d min", 3);
+  LOGF_STATUS("Portal closes in   : %d min", kPortalTimeoutSec / 60);
   LOG_STATUS("--------------------------------------------------------");
 
   bool connected = wm.autoConnect(apName.c_str());
