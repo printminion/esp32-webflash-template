@@ -67,8 +67,8 @@ PIO=""
 for candidate in \
     pio \
     platformio \
-    "$USERPROFILE/.platformio/penv/Scripts/platformio" \
-    "$USERPROFILE/.platformio/penv/Scripts/platformio.exe" \
+    "${USERPROFILE:-}/.platformio/penv/Scripts/platformio" \
+    "${USERPROFILE:-}/.platformio/penv/Scripts/platformio.exe" \
     "$HOME/.platformio/penv/Scripts/platformio" \
     "$HOME/.platformio/penv/Scripts/platformio.exe" \
     "$HOME/.platformio/penv/bin/platformio"; do
@@ -88,7 +88,7 @@ ESPTOOL_CMD=""
 
 # Try PlatformIO's own Python first (has all deps for the bundled esptool)
 for pio_python in \
-    "$USERPROFILE/.platformio/penv/Scripts/python.exe" \
+    "${USERPROFILE:-}/.platformio/penv/Scripts/python.exe" \
     "$HOME/.platformio/penv/Scripts/python.exe" \
     "$HOME/.platformio/penv/bin/python"; do
   if [[ -f "$pio_python" ]] && "$pio_python" -m esptool version &>/dev/null 2>&1; then
