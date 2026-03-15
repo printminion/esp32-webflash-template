@@ -109,7 +109,14 @@ if [[ -z "$ESPTOOL_CMD" ]]; then
 fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
+# Inject FIRMWARE_VERSION so the compiled binary reports the same version string
+# as the output filename (mirrors what CI does via sed on platformio.ini).
+# Use a trap to restore platformio.ini even if the build fails.
 echo ""
+echo "==> Injecting firmware version: ${VERSION}"
+sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+trap 'git checkout -- platformio.ini 2>/dev/null || true' EXIT
+
 echo "==> Building ${ENV}..."
 "$PIO" run -e "${ENV}"
 
