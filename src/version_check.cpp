@@ -87,7 +87,7 @@ void checkAndApplyUpdate() {
   extern const uint8_t x509_crt_bundle_start[] asm("_binary_x509_crt_bundle_start");
   extern const uint8_t x509_crt_bundle_end[]   asm("_binary_x509_crt_bundle_end");
   client.setCACertBundle(x509_crt_bundle_start,
-                         x509_crt_bundle_end - x509_crt_bundle_start);
+                         (size_t)(x509_crt_bundle_end - x509_crt_bundle_start));
 #else
   // IDF < 5.0: no accessible CA bundle via Arduino API. Fail closed rather than
   // silently skipping TLS verification. Set VERSION_CHECK_INSECURE=1 in
@@ -162,6 +162,12 @@ void checkAndApplyUpdate() {
 
   // ── 4. Apply OTA update ───────────────────────────────
   LOGF_STATUS("Downloading update %s...", remoteVersion);
+
+  // Reject non-https URLs — firmwareUrl comes from JSON and must use TLS.
+  if (strncmp(firmwareUrl, "https://", 8) != 0) {
+    LOGF_STATUS("VersionCheck: firmware URL must start with https:// — aborting (%s)", firmwareUrl);
+    return;
+  }
 
   esp_http_client_config_t cfg = {};
   cfg.url            = firmwareUrl;
