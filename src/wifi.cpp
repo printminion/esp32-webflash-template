@@ -22,8 +22,9 @@ void setupWifi() {
   uint64_t mac = ESP.getEfuseMac();
   char macSuffix[13];
   snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x%02x%02x%02x",
-           (uint8_t)(mac),       (uint8_t)(mac >> 8),  (uint8_t)(mac >> 16),
-           (uint8_t)(mac >> 24), (uint8_t)(mac >> 32), (uint8_t)(mac >> 40));
+           (unsigned)(mac & 0xFF),        (unsigned)((mac >> 8)  & 0xFF),
+           (unsigned)((mac >> 16) & 0xFF),(unsigned)((mac >> 24) & 0xFF),
+           (unsigned)((mac >> 32) & 0xFF),(unsigned)((mac >> 40) & 0xFF));
   // WiFi SSIDs are limited to 32 bytes. Cap the version portion so the full
   // 12-char MAC suffix (which guarantees uniqueness) is always preserved.
   // Layout: "ESP32-" (6) + version (≤13) + "-" (1) + mac (12) = ≤32
