@@ -24,6 +24,9 @@
 
 // ── Configuration ─────────────────────────────────────────
 #ifndef VERSION_CHECK_URL
+  #pragma message("VERSION_CHECK_URL is using the template default — devices will check " \
+                  "for updates from the template owner's infrastructure. Override in " \
+                  "build_flags: -D VERSION_CHECK_URL='\"https://your-domain/version.json\"'")
   #define VERSION_CHECK_URL \
     "https://printminion.github.io/esp32-webflash-template/version.json"
 #endif
