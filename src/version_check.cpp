@@ -69,9 +69,12 @@ void checkAndApplyUpdate() {
   client.setInsecure();
 #elif ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   // IDF 5.0+ (Arduino-ESP32 3.x): attach the built-in mbedTLS CA bundle.
+  // setCACertBundle(ptr, size) requires both start and end linker symbols.
   // CONFIG_MBEDTLS_CERTIFICATE_BUNDLE is enabled by default in Arduino builds.
   extern const uint8_t x509_crt_bundle_start[] asm("_binary_x509_crt_bundle_start");
-  client.setCACertBundle(x509_crt_bundle_start);
+  extern const uint8_t x509_crt_bundle_end[]   asm("_binary_x509_crt_bundle_end");
+  client.setCACertBundle(x509_crt_bundle_start,
+                         x509_crt_bundle_end - x509_crt_bundle_start);
 #else
   // IDF < 5.0: no accessible CA bundle via Arduino API — fall back to insecure.
   client.setInsecure();
