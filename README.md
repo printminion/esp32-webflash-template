@@ -87,6 +87,12 @@ esp32-webflash-template/
 
 CI/CD picks up the new board automatically via the dynamic matrix in the workflows.
 
+## Connect & Support
+
+- 🐦 **Follow on X/Twitter:** [@printminion](https://x.com/printminion)
+- 🖨️ **3D Enclosures:** [Custom 3D printed enclosures for DIY modules on Cults3D](https://cults3d.com/@printminion)
+- ☕ **Buy Me a Coffee:** [buymeacoffee.com/printminion](https://buymeacoffee.com/printminion)
+
 ## License
 
 MIT
