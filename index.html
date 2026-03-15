@@ -430,7 +430,14 @@
   const cfg  = window.PROJECT_CONFIG || {};
   const BASE = cfg.baseUrl || 'https://printminion.github.io/esp32-webflash-template';
   if (cfg.badgeText) document.getElementById('badge-text').textContent    = cfg.badgeText;
-  if (cfg.h1)        document.getElementById('page-h1').innerHTML         = cfg.h1;
+  if (cfg.h1) {
+    const h1 = document.getElementById('page-h1');
+    h1.innerHTML = '';
+    cfg.h1.split('<br>').forEach((part, i, arr) => {
+      h1.appendChild(document.createTextNode(part));
+      if (i < arr.length - 1) h1.appendChild(document.createElement('br'));
+    });
+  }
   if (cfg.subtitle)  document.getElementById('page-subtitle').textContent = cfg.subtitle;
   if (cfg.githubUrl) document.getElementById('github-link').href          = cfg.githubUrl;
 
@@ -467,18 +474,39 @@
   }
 
   function renderBoards() {
-    document.getElementById('board-list').innerHTML =
-      window.BOARDS_CONFIG.map(b =>
-        `<label class="board-option" id="opt-${b.id}">
-          <input type="radio" name="board" value="${b.id}" onchange="selectBoard(this)">
-          <div class="board-icon">${b.icon}</div>
-          <div class="board-info">
-            <div class="board-name">${b.name}</div>
-            <div class="board-meta">${b.meta}</div>
-          </div>
-          <div class="board-check"></div>
-        </label>`
-      ).join('');
+    const list = document.getElementById('board-list');
+    list.innerHTML = '';
+    window.BOARDS_CONFIG.forEach(b => {
+      const label = document.createElement('label');
+      label.className = 'board-option';
+      label.id = `opt-${b.id}`;
+
+      const input = document.createElement('input');
+      input.type = 'radio'; input.name = 'board'; input.value = b.id;
+      input.addEventListener('change', () => selectBoard(input));
+
+      const iconDiv = document.createElement('div');
+      iconDiv.className = 'board-icon';
+      iconDiv.textContent = b.icon;
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'board-name';
+      nameDiv.textContent = b.name;
+
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'board-meta';
+      metaDiv.textContent = b.meta;
+
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'board-info';
+      infoDiv.append(nameDiv, metaDiv);
+
+      const checkDiv = document.createElement('div');
+      checkDiv.className = 'board-check';
+
+      label.append(input, iconDiv, infoDiv, checkDiv);
+      list.appendChild(label);
+    });
   }
 
   function selectBoard(radio) {
@@ -495,6 +523,7 @@
     const btn  = document.getElementById('install-btn');
 
     if (!boardValue || !manifest) {
+      hint.textContent   = '← Pick a board to continue';
       hint.style.display = 'block';
       btn.style.display  = 'none';
       return;
