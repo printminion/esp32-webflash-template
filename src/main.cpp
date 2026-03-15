@@ -17,6 +17,7 @@
 // ── Forward declarations ──────────────────────────────────
 void setupWifi();
 void setupOTA();
+void otaLoop();
 void checkAndApplyUpdate();
 void blinkLed(int times, int delayMs = 200);
 
@@ -48,7 +49,6 @@ void setup() {
 void loop() {
 #ifdef FEATURE_OTA
   // ElegantOTA / ArduinoOTA handler — must be called in loop
-  extern void otaLoop();
   otaLoop();
 #endif
 
