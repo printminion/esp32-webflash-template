@@ -11,13 +11,21 @@
 
 static WebServer server(80);
 
-// OTA endpoint credentials. Override via -D OTA_USERNAME='"user"' and
-// -D OTA_PASSWORD='"pass"' in platformio.ini build_flags before deployment.
-#ifndef OTA_USERNAME
-  #define OTA_USERNAME "esp32"
-#endif
-#ifndef OTA_PASSWORD
-  #define OTA_PASSWORD "esp32"
+// OTA endpoint credentials must be set via build_flags in platformio.ini:
+//   -D OTA_USERNAME='"youruser"' -D OTA_PASSWORD='"yourpass"'
+// In debug builds a fallback is provided for convenience; release builds
+// require explicit credentials to prevent accidental open /update endpoints.
+#ifdef DEBUG_BUILD
+  #ifndef OTA_USERNAME
+    #define OTA_USERNAME "esp32"
+  #endif
+  #ifndef OTA_PASSWORD
+    #define OTA_PASSWORD "esp32"
+  #endif
+#else
+  #if !defined(OTA_USERNAME) || !defined(OTA_PASSWORD)
+    #error "OTA_USERNAME and OTA_PASSWORD must be defined in build_flags for release builds."
+  #endif
 #endif
 
 void setupOTA() {
