@@ -421,6 +421,7 @@
       <a href="https://github.com/printminion/esp32-webflash-template" target="_blank">GitHub</a> ·
       Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank">ESP Web Tools</a>
     </p>
+    <p id="branding-links" style="margin-top:0.4rem"></p>
   </footer>
 
 </div>
@@ -512,6 +513,13 @@
 
   renderBoards();
   loadManifest();
+
+  if (window.BRANDING_CONFIG?.length) {
+    document.getElementById('branding-links').innerHTML =
+      BRANDING_CONFIG.map(b =>
+        `<a href="${b.url}" target="_blank" rel="noopener noreferrer">${b.icon} ${b.label}</a>`
+      ).join(' · ');
+  }
 </script>
 </body>
 </html>
