@@ -173,7 +173,7 @@ void checkAndApplyUpdate() {
   esp_https_ota_handle_t handle = NULL;
   esp_err_t ret = esp_https_ota_begin(&ota_cfg, &handle);
   if (ret != ESP_OK) {
-    LOGF_STATUS("VersionCheck: OTA begin failed (0x%x) — continuing with current firmware", ret);
+    LOGF_STATUS("VersionCheck: OTA begin failed (0x%x) — continuing with current firmware", (unsigned)ret);
     return;
   }
 
@@ -198,7 +198,7 @@ void checkAndApplyUpdate() {
     delay(500);
     esp_restart();
   } else {
-    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", finish_ret);
+    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", (unsigned)finish_ret);
   }
 #else
   // Legacy single-shot API (ESP-IDF < 4.1): no streaming progress.
@@ -208,7 +208,7 @@ void checkAndApplyUpdate() {
     delay(500);
     esp_restart();
   } else {
-    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", ret);
+    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", (unsigned)ret);
   }
 #endif
 }
