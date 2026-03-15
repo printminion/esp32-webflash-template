@@ -54,6 +54,27 @@ def main() -> None:
             )
         lines.append("];")
 
+    installer = config.get("installer")
+    if installer:
+        proj = config["project"]
+
+        def esc(s: str) -> str:
+            return s.replace('"', '\\"')
+
+        lines += [
+            "",
+            "window.PROJECT_CONFIG = {",
+            f'  title:              "{esc(installer["title"])}",',
+            f'  h1:                 "{esc(installer["h1"])}",',
+            f'  subtitle:           "{esc(installer["subtitle"])}",',
+            f'  baseUrl:            "{esc(installer["baseUrl"])}",',
+            f'  githubUrl:          "{esc(installer["githubUrl"])}",',
+            f'  badgeText:          "{esc(installer.get("badgeText", "Web Installer"))}",',
+            f'  projectName:        "{esc(proj["name"])}",',
+            f'  projectDescription: "{esc(proj["description"])}"',
+            "};",
+        ]
+
     OUT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote {OUT_FILE.relative_to(ROOT)}")
 

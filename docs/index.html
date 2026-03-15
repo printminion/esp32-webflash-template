@@ -9,6 +9,7 @@
   <title>ESP32 Web Flasher</title>
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <script src="boards_config.js"></script>
+  <script>if (window.PROJECT_CONFIG) document.title = PROJECT_CONFIG.title;</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -365,9 +366,9 @@
 <div class="wrap" id="app">
 
   <header>
-    <div class="badge">Web Installer</div>
-    <h1>ESP32 Webflash<br>Template</h1>
-    <p class="subtitle">Select your board, connect via USB and flash directly from your browser — no software required.</p>
+    <div class="badge" id="badge-text">Web Installer</div>
+    <h1 id="page-h1">ESP32 Webflash<br>Template</h1>
+    <p class="subtitle" id="page-subtitle">Select your board, connect via USB and flash directly from your browser — no software required.</p>
   </header>
 
   <div class="browser-warn">
@@ -418,7 +419,7 @@
   <footer>
     <p>
       Open source ·
-      <a href="https://github.com/printminion/esp32-webflash-template" target="_blank">GitHub</a> ·
+      <a id="github-link" href="https://github.com/printminion/esp32-webflash-template" target="_blank">GitHub</a> ·
       Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank">ESP Web Tools</a>
     </p>
     <p id="branding-links" style="margin-top:0.4rem"></p>
@@ -426,7 +427,13 @@
 
 </div>
 <script>
-  const BASE = 'https://printminion.github.io/esp32-webflash-template';
+  const cfg  = window.PROJECT_CONFIG || {};
+  const BASE = cfg.baseUrl || 'https://printminion.github.io/esp32-webflash-template';
+  if (cfg.badgeText) document.getElementById('badge-text').textContent    = cfg.badgeText;
+  if (cfg.h1)        document.getElementById('page-h1').innerHTML         = cfg.h1;
+  if (cfg.subtitle)  document.getElementById('page-subtitle').textContent = cfg.subtitle;
+  if (cfg.githubUrl) document.getElementById('github-link').href          = cfg.githubUrl;
+
   let channel    = 'release';
   let boardValue = null;
   let manifest   = null;
