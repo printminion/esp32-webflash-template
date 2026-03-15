@@ -32,6 +32,7 @@ void setupOTA() {
   ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWORD);
   ElegantOTA.begin(&server);
   server.begin();
+  LOG_STATUS("OTA: WARNING — /update runs over plain HTTP; credentials and firmware are not encrypted on the LAN.");
   LOGF_STATUS("OTA: /update ready at http://%s/update", WiFi.localIP().toString().c_str());
 #else
   LOG_STATUS("OTA: web server not started — set OTA_USERNAME and OTA_PASSWORD in build_flags to enable.");
