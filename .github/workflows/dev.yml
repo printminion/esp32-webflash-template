@@ -149,3 +149,17 @@ jobs:
           publish_dir: ./docs/dev
           destination_dir: dev
           keep_files: true
+
+      - name: Stage root web installer files
+        run: |
+          mkdir -p _deploy_root
+          cp docs/index.html _deploy_root/
+          cp docs/boards_config.js _deploy_root/
+
+      - name: Deploy web installer to GitHub Pages root
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_deploy_root
+          destination_dir: .
+          keep_files: true
