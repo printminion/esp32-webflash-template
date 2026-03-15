@@ -40,6 +40,16 @@
   #define VERSION_CHECK_INSECURE 0
 #endif
 
+// On IDF < 5.0 the mbedTLS CA bundle is not accessible via the Arduino API,
+// so secure version checks are skipped at runtime (fail-closed). Warn at
+// compile time so developers know this build will never auto-update unless
+// VERSION_CHECK_INSECURE=1 is explicitly set.
+#if !VERSION_CHECK_INSECURE && ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+  #pragma message("FEATURE_VERSION_CHECK: IDF < 5.0 detected without VERSION_CHECK_INSECURE=1 — " \
+                  "version checks will be skipped at runtime (no accessible CA bundle). " \
+                  "Set VERSION_CHECK_INSECURE=1 in build_flags or upgrade to IDF 5.")
+#endif
+
 // ── Helpers ───────────────────────────────────────────────
 
 // Parse a semver string "vMAJOR.MINOR.PATCH" or "MAJOR.MINOR.PATCH"
