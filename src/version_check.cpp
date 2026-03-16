@@ -136,15 +136,13 @@ void checkAndApplyUpdate() {
     return;
   }
 
-  // Two read paths to avoid stream timeout blocking:
-  // - Known Content-Length: readBytes(N) returns as soon as N bytes arrive
-  //   (no extra wait since the connection closes after the last byte).
-  // - Unknown/chunked (getSize() == -1): getString() handles chunked decoding
-  //   internally and returns after the final chunk, then we size-check the result.
   // Static buffer: avoids consuming ~4KB of the 8KB loop task stack.
   static char jsonBuf[4097];
+  int bytesRead = 0;
+
   if (contentLength > 0) {
-    int bytesRead = http.getStream().readBytes(jsonBuf, contentLength);
+    // Known Content-Length: read exactly N bytes (returns promptly after last byte).
+    bytesRead = http.getStream().readBytes(jsonBuf, contentLength);
     jsonBuf[bytesRead] = '\0';
     http.end();
     if (bytesRead != contentLength) {
@@ -152,13 +150,27 @@ void checkAndApplyUpdate() {
       return;
     }
   } else {
-    String body = http.getString();
+    // Chunked/unknown size: read into the capped buffer incrementally using
+    // available() so we only read bytes that are already in the TCP buffer.
+    // This avoids both getString()'s unbounded heap allocation and readBytes()'
+    // blocking wait for stream timeout when the response is smaller than the cap.
+    Stream& stream = http.getStream();
+    unsigned long deadline = millis() + 8000;  // mirrors http.setTimeout(8000)
+    while (bytesRead < (int)(sizeof(jsonBuf) - 1) && millis() < deadline) {
+      int avail = stream.available();
+      if (avail > 0) {
+        int chunk = min(avail, (int)(sizeof(jsonBuf) - 1) - bytesRead);
+        bytesRead += stream.readBytes(jsonBuf + bytesRead, chunk);
+      } else {
+        vTaskDelay(1);  // yield so the TCP/IP task can deliver the next chunk
+      }
+    }
+    jsonBuf[bytesRead] = '\0';
     http.end();
-    if (body.length() > 4096) {
+    if (bytesRead == (int)(sizeof(jsonBuf) - 1)) {
       LOG_STATUS("VersionCheck: response too large — skipping");
       return;
     }
-    body.toCharArray(jsonBuf, sizeof(jsonBuf));
   }
 
   // ── 2. Parse JSON ──────────────────────────────────────
