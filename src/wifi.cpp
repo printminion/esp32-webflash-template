@@ -38,9 +38,17 @@ void setupWifi() {
   LOGF_STATUS("Connect to WiFi AP : %s", apName.c_str());
   LOG_STATUS("Then open          : http://192.168.4.1");
   LOGF_STATUS("Portal closes in   : %d min", kPortalTimeoutSec / 60);
+#ifndef WIFI_AP_PASSWORD
+  LOG_STATUS("WARNING: provisioning AP has no password — anyone nearby can connect.");
+  LOG_STATUS("Set WIFI_AP_PASSWORD in build_flags to secure the captive portal.");
+#endif
   LOG_STATUS("--------------------------------------------------------");
 
+#ifdef WIFI_AP_PASSWORD
+  bool connected = wm.autoConnect(apName.c_str(), WIFI_AP_PASSWORD);
+#else
   bool connected = wm.autoConnect(apName.c_str());
+#endif
 
   if (!connected) {
     LOG_STATUS("WiFi: failed to connect — restarting in 5s");
