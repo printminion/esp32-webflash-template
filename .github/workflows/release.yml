@@ -138,8 +138,10 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled)
-          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/firmware/${VERSION}"
+          # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled).
+          # Derive base URL from installer.baseUrl in project.json so forks/custom domains work.
+          INSTALLER_BASE=$(jq -r '.installer.baseUrl' project.json)
+          PAGES_URL="${INSTALLER_BASE}/firmware/${VERSION}"
           # version.json: fetched by firmware via esp_https_ota — GitHub Releases URLs are fine
           RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
 
@@ -176,7 +178,7 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          PAGES_URL="$(jq -r '.installer.baseUrl' project.json)/"
           {
             echo "## ${PROJECT_NAME} ${VERSION}"
             echo ""
