@@ -74,11 +74,16 @@ jobs:
           sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
 
       - name: Build ${{ matrix.environment }}
-        # WIFI_AP_OPEN=1: release envs omit this flag by default so local builds require an
-        # explicit AP policy. CI injects it here so the template compiles out of the box.
+        # Use WIFI_AP_PASSWORD secret if configured; otherwise fall back to WIFI_AP_OPEN=1.
         env:
-          PLATFORMIO_BUILD_FLAGS: "-D WIFI_AP_OPEN=1"
-        run: pio run -e ${{ matrix.environment }}
+          WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
+        run: |
+          if [ -n "$WIFI_AP_PASSWORD_SECRET" ]; then
+            export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"${WIFI_AP_PASSWORD_SECRET}\"'"
+          else
+            export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1"
+          fi
+          pio run -e ${{ matrix.environment }}
 
       - name: Create merged firmware binary
         run: |

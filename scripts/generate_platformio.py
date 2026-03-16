@@ -92,7 +92,9 @@ def render_env(board: dict, debug: bool) -> str:
     if debug:
         lines.append("    -D DEBUG_BUILD")
         lines.append("    -D CORE_DEBUG_LEVEL=4")
-        lines.append("    -D WIFI_AP_OPEN=1")
+        # WIFI_AP_OPEN is intentionally omitted: wifi.cpp already allows an open AP in
+        # debug builds (no NDEBUG) without any AP flag, and omitting it here lets users
+        # set WIFI_AP_PASSWORD globally without hitting the "both defined" build error.
     else:
         lines.append("    -D NDEBUG")
         # Emit explanatory comments so users understand why the release env
