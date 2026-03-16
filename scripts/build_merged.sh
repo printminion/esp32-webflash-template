@@ -131,9 +131,9 @@ echo "==> Injecting firmware version: ${VERSION}"
 _is_gnu_sed=0
 sed --version 2>&1 | grep -q GNU && _is_gnu_sed=1 || true
 if [[ "$_is_gnu_sed" -eq 1 ]]; then
-  sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+  sed -i "s/-D FIRMWARE_VERSION='\"[^\"]*\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
 else
-  sed -i '' "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+  sed -i '' "s/-D FIRMWARE_VERSION='\"[^\"]*\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
 fi
 
 echo "==> Building ${ENV}..."
