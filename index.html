@@ -12,7 +12,7 @@
     integrity="sha384-2Ea4WL8tjFb0qQKUqBoX45KlPVoUgL+Z3zUqsD0MHmtJ3faDbfNyZulLg/LfYDUZ"
     crossorigin="anonymous"></script>
   <script src="boards_config.js"></script>
-  <script>if (window.PROJECT_CONFIG) document.title = PROJECT_CONFIG.title;</script>
+  <script>if (window.PROJECT_CONFIG) document.title = window.PROJECT_CONFIG.title;</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -586,7 +586,7 @@
 
   if (window.BRANDING_CONFIG?.length) {
     const brandingEl = document.getElementById('branding-links');
-    BRANDING_CONFIG.forEach((b, i) => {
+    window.BRANDING_CONFIG.forEach((b, i) => {
       if (i > 0) brandingEl.appendChild(document.createTextNode(' · '));
       const a = document.createElement('a');
       try {
