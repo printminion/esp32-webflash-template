@@ -155,12 +155,15 @@ void checkAndApplyUpdate() {
     // This avoids both getString()'s unbounded heap allocation and readBytes()'
     // blocking wait for stream timeout when the response is smaller than the cap.
     Stream& stream = http.getStream();
-    unsigned long deadline = millis() + 8000;  // mirrors http.setTimeout(8000)
-    while (bytesRead < (int)(sizeof(jsonBuf) - 1) && millis() < deadline) {
+    unsigned long start = millis();
+    while (bytesRead < (int)(sizeof(jsonBuf) - 1)) {
+      if ((millis() - start) >= 8000) break;  // wrap-safe 8s timeout
       int avail = stream.available();
       if (avail > 0) {
         int chunk = min(avail, (int)(sizeof(jsonBuf) - 1) - bytesRead);
         bytesRead += stream.readBytes(jsonBuf + bytesRead, chunk);
+      } else if (!http.connected()) {
+        break;  // server closed connection — all data received
       } else {
         vTaskDelay(1);  // yield so the TCP/IP task can deliver the next chunk
       }

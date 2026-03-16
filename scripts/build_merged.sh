@@ -113,6 +113,18 @@ if [[ ${#ESPTOOL_CMD[@]} -eq 0 ]]; then
   fi
 fi
 
+# Locate python — prefer python3, fall back to python (Windows uses the latter)
+PYTHON=""
+for candidate in python3 python; do
+  if command -v "$candidate" &>/dev/null 2>&1; then
+    PYTHON="$candidate"; break
+  fi
+done
+if [[ -z "$PYTHON" ]]; then
+  echo "Error: python3 or python not found on PATH."
+  exit 1
+fi
+
 # ── Build ─────────────────────────────────────────────────────────────────────
 # Inject FIRMWARE_VERSION so the compiled binary reports the same version string
 # as the output filename (mirrors what CI does via sed on platformio.ini).
@@ -126,7 +138,7 @@ echo ""
 echo "==> Injecting firmware version: ${VERSION}"
 # Use Python for safe in-place replacement — avoids sed GNU/BSD differences and
 # handles any characters in VERSION (e.g. '/', '&') without delimiter conflicts.
-python3 - <<EOF
+"$PYTHON" - <<EOF
 import re
 version = "${VERSION}"
 with open("platformio.ini", "r") as f:
