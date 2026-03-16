@@ -89,7 +89,7 @@ fi
 
 # Locate esptool — prefer running as a Python module to avoid missing-deps issues
 # with the standalone script in PlatformIO's bundled package.
-ESPTOOL_CMD=""
+ESPTOOL_CMD=()
 
 # Try PlatformIO's own Python first (has all deps for the bundled esptool)
 for pio_python in \
@@ -97,19 +97,19 @@ for pio_python in \
     "$HOME/.platformio/penv/Scripts/python.exe" \
     "$HOME/.platformio/penv/bin/python"; do
   if [[ -f "$pio_python" ]] && "$pio_python" -m esptool version &>/dev/null 2>&1; then
-    ESPTOOL_CMD="$pio_python -m esptool"
+    ESPTOOL_CMD=("$pio_python" -m esptool)
     break
   fi
 done
 
 # Fall back to system Python
-if [[ -z "$ESPTOOL_CMD" ]]; then
+if [[ ${#ESPTOOL_CMD[@]} -eq 0 ]]; then
   if python -m esptool version &>/dev/null 2>&1; then
-    ESPTOOL_CMD="python -m esptool"
+    ESPTOOL_CMD=(python -m esptool)
   else
     echo "esptool not found in PlatformIO or system Python — installing..."
     python -m pip install esptool
-    ESPTOOL_CMD="python -m esptool"
+    ESPTOOL_CMD=(python -m esptool)
   fi
 fi
 
@@ -143,7 +143,7 @@ echo "==> Building ${ENV}..."
 mkdir -p "${OUT_DIR}"
 echo ""
 echo "==> Merging binary for ${CHIP_NAME} (bootloader @ ${BL_OFFSET})..."
-$ESPTOOL_CMD --chip "${CHIP_NAME}" merge_bin \
+"${ESPTOOL_CMD[@]}" --chip "${CHIP_NAME}" merge_bin \
   -o "${OUTPUT}" \
   "${BL_OFFSET}" "${BUILD_DIR}/bootloader.bin" \
   0x8000              "${BUILD_DIR}/partitions.bin" \
@@ -157,12 +157,12 @@ echo "==> Merged binary: ${OUTPUT} (${SIZE})"
 if [[ -n "$FLASH_PORT" ]]; then
   echo ""
   echo "==> Flashing to ${FLASH_PORT}..."
-  $ESPTOOL_CMD --chip "${CHIP_NAME}" --port "${FLASH_PORT}" --baud 921600 \
+  "${ESPTOOL_CMD[@]}" --chip "${CHIP_NAME}" --port "${FLASH_PORT}" --baud 921600 \
     write_flash 0x0 "${OUTPUT}"
   echo ""
   echo "==> Done. Monitor with: pio device monitor -p ${FLASH_PORT} -b 115200"
 else
   echo ""
   echo "To flash manually:"
-  echo "  $ESPTOOL_CMD --chip ${CHIP_NAME} --port <PORT> --baud 921600 write_flash 0x0 ${OUTPUT}"
+  echo "  ${ESPTOOL_CMD[*]} --chip ${CHIP_NAME} --port <PORT> --baud 921600 write_flash 0x0 ${OUTPUT}"
 fi
