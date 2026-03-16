@@ -78,7 +78,7 @@ jobs:
           # This is required for ESP Web Tools — flashing only the app binary (offset 0x10000)
           # at offset 0 overwrites the bootloader and causes a crash-loop on next boot.
           mkdir -p firmware
-          esptool.py --chip ${{ matrix.chip }} merge_bin \
+          python -m esptool --chip ${{ matrix.chip }} merge_bin \
             -o firmware/firmware-${{ matrix.environment }}-${{ github.ref_name }}.bin \
             ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.environment }}/bootloader.bin \
             0x8000 .pio/build/${{ matrix.environment }}/partitions.bin \

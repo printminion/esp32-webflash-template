@@ -80,7 +80,7 @@ jobs:
         run: |
           mkdir -p firmware
           VERSION="${{ needs.setup.outputs.version }}"
-          esptool.py --chip ${{ matrix.chip }} merge_bin \
+          python -m esptool --chip ${{ matrix.chip }} merge_bin \
             -o firmware/firmware-${{ matrix.environment }}-${VERSION}.bin \
             ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.environment }}/bootloader.bin \
             0x8000 .pio/build/${{ matrix.environment }}/partitions.bin \
