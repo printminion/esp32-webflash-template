@@ -15,7 +15,6 @@
 #include <ArduinoJson.h>
 #include <esp_idf_version.h>
 #include <esp_https_ota.h>
-#include <esp_ota_ops.h>
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   #include <esp_crt_bundle.h>
 #endif
