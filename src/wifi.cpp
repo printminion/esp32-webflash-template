@@ -5,7 +5,13 @@
 #include <Arduino.h>
 #include <WiFiManager.h>
 #include <WiFi.h>
+#include <esp_efuse.h>
 #include "logger.h"
+
+#ifndef WIFI_AP_PASSWORD
+  #pragma message("WIFI_AP_PASSWORD not set — provisioning AP will be open (no password). " \
+                  "Set in build_flags: -D WIFI_AP_PASSWORD='\"yourpassword\"'")
+#endif
 
 static WiFiManager wm;
 
@@ -20,12 +26,13 @@ void setupWifi() {
 
   // AP name shown to user during provisioning — includes firmware version for flash validation.
   // Use all 6 MAC bytes to guarantee uniqueness across devices.
-  uint64_t mac = ESP.getEfuseMac();
+  // esp_efuse_mac_get_default fills mac[0..5] in standard OUI-first (MSB-first) byte order.
+  uint8_t macBytes[6];
+  esp_efuse_mac_get_default(macBytes);
   char macSuffix[13];
   snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x%02x%02x%02x",
-           (unsigned)(mac & 0xFF),        (unsigned)((mac >> 8)  & 0xFF),
-           (unsigned)((mac >> 16) & 0xFF),(unsigned)((mac >> 24) & 0xFF),
-           (unsigned)((mac >> 32) & 0xFF),(unsigned)((mac >> 40) & 0xFF));
+           macBytes[0], macBytes[1], macBytes[2],
+           macBytes[3], macBytes[4], macBytes[5]);
   // WiFi SSIDs are limited to 32 bytes. Cap the version portion so the full
   // 12-char MAC suffix (which guarantees uniqueness) is always preserved.
   // Layout: "ESP32-" (6) + version (≤13) + "-" (1) + mac (12) = ≤32
