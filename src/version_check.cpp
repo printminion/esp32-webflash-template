@@ -47,6 +47,10 @@
 #ifndef VERSION_CHECK_INSECURE
   #define VERSION_CHECK_INSECURE 0
 #endif
+#if VERSION_CHECK_INSECURE && defined(NDEBUG)
+  #error "VERSION_CHECK_INSECURE=1 must not be used in release builds (enables MITM/RCE). " \
+         "Remove it from build_flags or restrict it to debug environments."
+#endif
 
 // On IDF < 5.0 the mbedTLS CA bundle is not accessible via the Arduino API,
 // so secure version checks are skipped at runtime (fail-closed). Warn at
