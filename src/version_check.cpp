@@ -143,8 +143,14 @@ void checkAndApplyUpdate() {
   if (boardKey.endsWith(" (debug)")) boardKey.remove(boardKey.length() - 8);
   const char* firmwareUrl = doc["boards"][boardKey.c_str()];
 
-  if (!remoteVersion || !firmwareUrl || firmwareUrl[0] == '\0') {
-    LOGF_STATUS("VersionCheck: missing fields in version.json (board key: %s)", boardKey.c_str());
+  if (!remoteVersion) {
+    LOG_STATUS("VersionCheck: missing version field in version.json — skipping");
+    return;
+  }
+  if (!firmwareUrl || firmwareUrl[0] == '\0') {
+    // No URL for this board is a normal state (e.g. placeholder version.json
+    // before a release populates it). Log at debug level only.
+    LOGF("VersionCheck: no firmware URL for board '%s' — skipping", boardKey.c_str());
     return;
   }
 
