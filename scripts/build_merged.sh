@@ -121,7 +121,11 @@ echo ""
 echo "==> Injecting firmware version: ${VERSION}"
 # sed -i behaves differently on GNU (Linux/CI) vs BSD (macOS): GNU omits the
 # backup extension, BSD requires an explicit empty string argument.
-if sed --version 2>&1 | grep -q GNU; then
+# Use a variable + || true so pipefail does not abort the script when
+# `sed --version` exits non-zero on BSD.
+_is_gnu_sed=0
+sed --version 2>&1 | grep -q GNU && _is_gnu_sed=1 || true
+if [[ "$_is_gnu_sed" -eq 1 ]]; then
   sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
 else
   sed -i '' "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
