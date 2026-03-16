@@ -66,8 +66,21 @@ jobs:
 
       - name: Inject firmware version
         run: |
-          VERSION="${{ github.ref_name }}"
-          sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+          # Use Python for safe in-place replacement — avoids sed delimiter conflicts
+          # when VERSION contains '/', '&', or other sed-special characters.
+          python - <<'EOF'
+          import re, sys
+          version = "${{ github.ref_name }}"
+          with open("platformio.ini", "r") as f:
+              content = f.read()
+          content = re.sub(
+              r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
+              f"-D FIRMWARE_VERSION='\"{ version }\"'",
+              content,
+          )
+          with open("platformio.ini", "w") as f:
+              f.write(content)
+          EOF
 
       - name: Build ${{ matrix.environment }}
         # WiFi AP policy for release builds (requires one of the following):
@@ -79,7 +92,9 @@ jobs:
           WIFI_AP_ALLOW_OPEN: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
         run: |
           if [ -n "$WIFI_AP_PASSWORD_SECRET" ]; then
-            export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"${WIFI_AP_PASSWORD_SECRET}\"'"
+            # Use printf %q to safely escape the secret value before embedding in flags.
+            ESCAPED=$(printf '%q' "$WIFI_AP_PASSWORD_SECRET")
+            export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"${ESCAPED}\"'"
           elif [ "$WIFI_AP_ALLOW_OPEN" = "1" ]; then
             export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1"
           else

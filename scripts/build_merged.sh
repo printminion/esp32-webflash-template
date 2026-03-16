@@ -124,17 +124,21 @@ trap 'cp "$PLATFORMIO_BACKUP" platformio.ini; rm -f "$PLATFORMIO_BACKUP"' EXIT
 
 echo ""
 echo "==> Injecting firmware version: ${VERSION}"
-# sed -i behaves differently on GNU (Linux/CI) vs BSD (macOS): GNU omits the
-# backup extension, BSD requires an explicit empty string argument.
-# Use a variable + || true so pipefail does not abort the script when
-# `sed --version` exits non-zero on BSD.
-_is_gnu_sed=0
-sed --version 2>&1 | grep -q GNU && _is_gnu_sed=1 || true
-if [[ "$_is_gnu_sed" -eq 1 ]]; then
-  sed -i "s/-D FIRMWARE_VERSION='\"[^\"]*\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
-else
-  sed -i '' "s/-D FIRMWARE_VERSION='\"[^\"]*\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
-fi
+# Use Python for safe in-place replacement — avoids sed GNU/BSD differences and
+# handles any characters in VERSION (e.g. '/', '&') without delimiter conflicts.
+python3 - <<EOF
+import re
+version = "${VERSION}"
+with open("platformio.ini", "r") as f:
+    content = f.read()
+content = re.sub(
+    r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
+    "-D FIRMWARE_VERSION='\"" + version + "\"'",
+    content,
+)
+with open("platformio.ini", "w") as f:
+    f.write(content)
+EOF
 
 echo "==> Building ${ENV}..."
 # Release envs require WIFI_AP_PASSWORD or WIFI_AP_OPEN=1 (see src/wifi.cpp).

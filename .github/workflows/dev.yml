@@ -70,8 +70,21 @@ jobs:
 
       - name: Inject firmware version
         run: |
-          VERSION="${{ needs.setup.outputs.version }}"
-          sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+          # Use Python for safe in-place replacement — avoids sed delimiter conflicts
+          # when VERSION contains '/', '&', or other sed-special characters.
+          python - <<'EOF'
+          import re
+          version = "${{ needs.setup.outputs.version }}"
+          with open("platformio.ini", "r") as f:
+              content = f.read()
+          content = re.sub(
+              r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
+              f"-D FIRMWARE_VERSION='\"{ version }\"'",
+              content,
+          )
+          with open("platformio.ini", "w") as f:
+              f.write(content)
+          EOF
 
       - name: Build ${{ matrix.environment }}
         # Use WIFI_AP_PASSWORD secret if configured; otherwise fall back to WIFI_AP_OPEN=1.
@@ -79,7 +92,8 @@ jobs:
           WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
         run: |
           if [ -n "$WIFI_AP_PASSWORD_SECRET" ]; then
-            export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"${WIFI_AP_PASSWORD_SECRET}\"'"
+            ESCAPED=$(printf '%q' "$WIFI_AP_PASSWORD_SECRET")
+            export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"${ESCAPED}\"'"
           else
             export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1"
           fi
