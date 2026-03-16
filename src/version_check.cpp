@@ -20,7 +20,6 @@
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   #include <esp_crt_bundle.h>
 #endif
-#include "board_config.h"
 #include "logger.h"
 
 // ── Configuration ─────────────────────────────────────────
@@ -117,8 +116,14 @@ void checkAndApplyUpdate() {
     return;
   }
 
-  String body = http.getString();
-  http.end();
+  // Reject oversized responses before allocating a String (guards against
+  // a malicious or misconfigured server sending megabytes of data).
+  int contentLength = http.getSize();
+  if (contentLength > 4096) {
+    LOGF_STATUS("VersionCheck: response too large (%d bytes) — skipping", contentLength);
+    http.end();
+    return;
+  }
 
   // ── 2. Parse JSON ──────────────────────────────────────
   // Expected shape:
@@ -130,7 +135,8 @@ void checkAndApplyUpdate() {
   //   }
   // }
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, body);
+  DeserializationError err = deserializeJson(doc, http.getStream());
+  http.end();
   if (err) {
     LOGF_STATUS("VersionCheck: JSON parse error: %s", err.c_str());
     return;
