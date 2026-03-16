@@ -11,7 +11,7 @@ A multi-board ESP32 firmware template with a browser-based web installer powered
 | Seeed XIAO ESP32-C3 | `seeed_xiao_esp32c3` |
 | Seeed XIAO ESP32-S3 | `seeed_xiao_esp32s3` |
 | Seeed XIAO ESP32-C6 | `seeed_xiao_esp32c6` |
-| Generic ESP32 (DevKitC) | `generic_esp32` |
+| Generic ESP32 | `generic_esp32` |
 
 Each board has a matching `-debug` environment with verbose serial logging enabled.
 
@@ -54,9 +54,10 @@ esp32-webflash-template/
 │   └── ota.cpp           # OTA updates
 ├── include/
 │   └── logger.h          # Debug logging macros
-├── boards/               # Board-specific configs
+├── boards/               # Board-specific configs (one dir per board in project.json)
 │   ├── seeed_xiao_esp32c3/board_config.h
 │   ├── seeed_xiao_esp32s3/board_config.h
+│   ├── seeed_xiao_esp32c6/board_config.h
 │   └── generic_esp32/board_config.h
 ├── docs/                 # GitHub Pages web installer
 │   ├── index.html
