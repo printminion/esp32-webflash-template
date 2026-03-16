@@ -71,9 +71,11 @@ static uint32_t parseSemver(const char* s, bool* valid) {
   *valid = false;
   if (!s || !*s) return 0;
   if (*s == 'v') s++;               // strip leading 'v'
-  unsigned maj = 0, min = 0, pat = 0;
+  // Use unsigned long to avoid UB when the version string component exceeds UINT_MAX.
+  // Range checks below reject values that overflow the packed uint32 bitfield.
+  unsigned long maj = 0, min = 0, pat = 0;
   int consumed = 0;
-  if (sscanf(s, "%u.%u.%u%n", &maj, &min, &pat, &consumed) != 3) return 0;
+  if (sscanf(s, "%lu.%lu.%lu%n", &maj, &min, &pat, &consumed) != 3) return 0;
   if (s[consumed] != '\0') return 0;  // reject suffixes: -rc1, +meta, etc.
   // Reject out-of-range components to prevent bitfield overflow:
   // major: 12-bit (0–4095), minor/patch: 10-bit each (0–1023).
