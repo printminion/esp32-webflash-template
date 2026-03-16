@@ -27,6 +27,15 @@ Each board has a matching `-debug` environment with verbose serial logging enabl
 
 Install [PlatformIO](https://platformio.org/) then:
 
+> **WiFi provisioning AP policy** — release environments (`-D NDEBUG`) require an
+> explicit AP security setting in `build_flags`. Add one of these to the target env
+> in `platformio.ini` before building:
+> ```ini
+> -D WIFI_AP_PASSWORD='"yourpassword"'   ; password-protected captive portal (recommended)
+> -D WIFI_AP_OPEN=1                      ; open AP — development/testing only
+> ```
+> Debug environments (`-debug` suffix) default to `WIFI_AP_OPEN=1`.
+
 ```bash
 # Build all release environments
 pio run
