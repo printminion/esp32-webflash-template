@@ -123,7 +123,6 @@ void checkAndApplyUpdate() {
     return;
   }
 
-  // Reject oversized responses before reading.
   int contentLength = http.getSize();
   if (contentLength > 4096) {
     LOGF_STATUS("VersionCheck: response too large (%d bytes) — skipping", contentLength);
@@ -131,23 +130,27 @@ void checkAndApplyUpdate() {
     return;
   }
 
-  // Read into a fixed-size buffer.
-  // When Content-Length is known, read exactly that many bytes to avoid waiting
-  // for the stream timeout. For chunked/unknown responses (getSize() == -1),
-  // read up to the cap; treat a full buffer as an error (truncated input).
+  // Two read paths to avoid blocking on stream timeout:
+  // - Known Content-Length: readBytes() reads exactly N bytes without waiting.
+  // - Unknown/chunked (getSize() == -1): getString() handles chunked decoding
+  //   and returns only available data, then we size-check the result.
   char jsonBuf[4097];
-  int toRead = (contentLength > 0) ? contentLength : (int)(sizeof(jsonBuf) - 1);
-  int bytesRead = http.getStream().readBytes(jsonBuf, toRead);
-  jsonBuf[bytesRead] = '\0';
-  http.end();
-
-  if (contentLength < 0 && bytesRead == (int)(sizeof(jsonBuf) - 1)) {
-    LOG_STATUS("VersionCheck: response too large — skipping");
-    return;
-  }
-  if (contentLength > 0 && bytesRead != contentLength) {
-    LOGF_STATUS("VersionCheck: partial read (%d/%d bytes) — skipping", bytesRead, contentLength);
-    return;
+  if (contentLength > 0) {
+    int bytesRead = http.getStream().readBytes(jsonBuf, contentLength);
+    jsonBuf[bytesRead] = '\0';
+    http.end();
+    if (bytesRead != contentLength) {
+      LOGF_STATUS("VersionCheck: partial read (%d/%d bytes) — skipping", bytesRead, contentLength);
+      return;
+    }
+  } else {
+    String body = http.getString();
+    http.end();
+    if (body.length() > 4096) {
+      LOG_STATUS("VersionCheck: response too large — skipping");
+      return;
+    }
+    body.toCharArray(jsonBuf, sizeof(jsonBuf));
   }
 
   // ── 2. Parse JSON ──────────────────────────────────────
