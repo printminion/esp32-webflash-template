@@ -16,6 +16,10 @@
   #pragma message("WIFI_AP_PASSWORD not set — provisioning AP will be open (no password). " \
                   "Set in build_flags (outer single quotes, inner double quotes): " \
                   "-D WIFI_AP_PASSWORD='\"yourpassword\"'")
+#else
+  // ESP32 SoftAP requires a minimum password length of 8 characters.
+  static_assert(sizeof(WIFI_AP_PASSWORD) - 1 >= 8,
+                "WIFI_AP_PASSWORD must be at least 8 characters (ESP32 SoftAP minimum).");
 #endif
 
 static WiFiManager wm;
