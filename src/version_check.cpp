@@ -1,5 +1,5 @@
 // ============================================================
-// version_check.cpp — Automatic OTA version check
+// version_check.cpp — Automatic OTA version check (FEATURE_VERSION_CHECK)
 //
 // On demand, fetches version.json from GitHub Pages and compares
 // the remote version to the running firmware. If a newer version
@@ -8,6 +8,8 @@
 //
 // Called once from setup() after WiFi is connected.
 // ============================================================
+#include "board_config.h"
+#ifdef FEATURE_VERSION_CHECK
 
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
@@ -243,3 +245,5 @@ void checkAndApplyUpdate() {
   }
 #endif
 }
+
+#endif // FEATURE_VERSION_CHECK

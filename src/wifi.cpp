@@ -1,6 +1,8 @@
 // ============================================================
 // wifi.cpp — WiFi provisioning via captive portal (WiFiManager)
 // ============================================================
+#include "board_config.h"
+#ifdef FEATURE_WIFI_PROVISIONING
 
 #include <Arduino.h>
 #include <WiFiManager.h>
@@ -65,3 +67,5 @@ void setupWifi() {
 
   LOGF_STATUS("WiFi: connected, IP=%s", WiFi.localIP().toString().c_str());
 }
+
+#endif // FEATURE_WIFI_PROVISIONING

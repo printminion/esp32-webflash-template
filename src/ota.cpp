@@ -2,6 +2,8 @@
 // ota.cpp — Over-the-air updates via ElegantOTA
 // Exposes /update endpoint on the device's web server
 // ============================================================
+#include "board_config.h"
+#ifdef FEATURE_OTA
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -47,3 +49,5 @@ void otaLoop() {
   ElegantOTA.loop();
 #endif
 }
+
+#endif // FEATURE_OTA

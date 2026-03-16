@@ -15,10 +15,16 @@
 #include "logger.h"
 
 // ── Forward declarations ──────────────────────────────────
+#ifdef FEATURE_WIFI_PROVISIONING
 void setupWifi();
+#endif
+#ifdef FEATURE_OTA
 void setupOTA();
 void otaLoop();
+#endif
+#ifdef FEATURE_VERSION_CHECK
 void checkAndApplyUpdate();
+#endif
 void blinkLed(int times, int delayMs = 200);
 
 // ─────────────────────────────────────────────────────────
