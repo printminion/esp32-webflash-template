@@ -21,6 +21,13 @@
   #define OTA_ENDPOINT_ACTIVE 0
 #endif
 
+// Warn at compile time when HTTP OTA is enabled in a release build: credentials
+// and firmware are sent unencrypted over the LAN.
+#if OTA_ENDPOINT_ACTIVE && defined(NDEBUG)
+  #pragma message("OTA: /update endpoint is active in a release build and serves over plain HTTP. " \
+                  "Credentials and firmware are not encrypted on the LAN.")
+#endif
+
 #if OTA_ENDPOINT_ACTIVE
 #include <WebServer.h>
 #include <ElegantOTA.h>
