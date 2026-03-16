@@ -52,7 +52,7 @@ void setupWifi() {
   uint8_t macBytes[6] = {};  // zero-initialize so suffix is deterministic if efuse read fails
   esp_err_t macErr = esp_efuse_mac_get_default(macBytes);
   if (macErr != ESP_OK) {
-    LOGF("WiFi: esp_efuse_mac_get_default failed (0x%x) — MAC suffix will be 000000000000", (unsigned)macErr);
+    LOGF_STATUS("WiFi: esp_efuse_mac_get_default failed (0x%x) — MAC suffix will be 000000000000", (unsigned)macErr);
   }
   char macSuffix[13];
   snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x%02x%02x%02x",
