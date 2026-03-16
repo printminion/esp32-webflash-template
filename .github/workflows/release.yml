@@ -70,15 +70,21 @@ jobs:
           sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
 
       - name: Build ${{ matrix.environment }}
-        # Use WIFI_AP_PASSWORD secret if configured; otherwise fall back to WIFI_AP_OPEN=1.
-        # Set the WIFI_AP_PASSWORD repository secret to produce password-protected release builds.
+        # WiFi AP policy for release builds (requires one of the following):
+        #   1. Set the WIFI_AP_PASSWORD repository secret → password-protected captive portal.
+        #   2. Set the WIFI_AP_ALLOW_OPEN_RELEASE repository variable to "1" → open AP (not for production).
+        # If neither is set the job fails so open-AP firmware is never published by accident.
         env:
           WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
+          WIFI_AP_ALLOW_OPEN: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
         run: |
           if [ -n "$WIFI_AP_PASSWORD_SECRET" ]; then
             export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"${WIFI_AP_PASSWORD_SECRET}\"'"
-          else
+          elif [ "$WIFI_AP_ALLOW_OPEN" = "1" ]; then
             export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1"
+          else
+            echo "::error::Set the WIFI_AP_PASSWORD secret (recommended) or the WIFI_AP_ALLOW_OPEN_RELEASE variable to '1' before releasing."
+            exit 1
           fi
           pio run -e ${{ matrix.environment }}
 

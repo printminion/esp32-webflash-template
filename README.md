@@ -34,7 +34,7 @@ Install [PlatformIO](https://platformio.org/) then:
 > -D WIFI_AP_PASSWORD='"yourpassword"'   ; password-protected captive portal (recommended)
 > -D WIFI_AP_OPEN=1                      ; open AP — development/testing only
 > ```
-> Debug environments (`-debug` suffix) default to `WIFI_AP_OPEN=1`.
+> Debug environments (no `-D NDEBUG`) allow an open AP by default — no policy flag required.
 
 ```bash
 # Build all release environments
