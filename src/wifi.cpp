@@ -15,14 +15,14 @@
 // - WIFI_AP_OPEN=1: explicit opt-in to an open (password-less) AP — not for production.
 // Defining both is a build error. Release builds (NDEBUG) with neither flag are also an
 // error, to prevent accidentally shipping an open portal.
-#if defined(WIFI_AP_PASSWORD) && defined(WIFI_AP_OPEN)
+#if defined(WIFI_AP_PASSWORD) && WIFI_AP_OPEN
   #error "Define either WIFI_AP_PASSWORD or WIFI_AP_OPEN=1, not both."
 #elif defined(WIFI_AP_PASSWORD)
   // ESP32 SoftAP requires a minimum password length of 8 characters.
   static_assert(sizeof(WIFI_AP_PASSWORD) - 1 >= 8,
                 "WIFI_AP_PASSWORD must be at least 8 characters (ESP32 SoftAP minimum).");
-#elif defined(WIFI_AP_OPEN)
-  // Explicit opt-in: open AP accepted, warn at compile time.
+#elif WIFI_AP_OPEN
+  // Explicit opt-in: open AP accepted (WIFI_AP_OPEN != 0), warn at compile time.
   #pragma message("WIFI_AP_OPEN=1 — provisioning AP has no password. " \
                   "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' to secure the captive portal.")
 #elif defined(NDEBUG)
