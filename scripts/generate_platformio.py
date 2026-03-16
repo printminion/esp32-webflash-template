@@ -103,8 +103,8 @@ def render_env(board: dict, debug: bool) -> str:
 
 def generate(config: dict) -> str:
     project_name      = config["project"]["name"]
-    installer_base    = config["installer"]["baseUrl"].rstrip("/")
-    version_check_url = f"{installer_base}/version.json"
+    installer_base    = config.get("installer", {}).get("baseUrl", "").rstrip("/")
+    version_check_url = f"{installer_base}/version.json" if installer_base else ""
     boards            = config["boards"]
 
     parts = [HEADER.rstrip()]
