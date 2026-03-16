@@ -159,22 +159,29 @@ void checkAndApplyUpdate() {
   //     ...
   //   }
   // }
-  // JsonDocument allocation is bounded by jsonBuf (≤4096 bytes), so heap use
-  // is predictable. ArduinoJson v7 does not expose a fixed-capacity API.
+
+  // Debug builds append " (debug)" to BOARD_NAME, but version.json uses the
+  // release name as the key. Strip the suffix so lookups succeed in both modes.
+  String boardKey = BOARD_NAME;
+  if (boardKey.endsWith(" (debug)")) boardKey.remove(boardKey.length() - 8);
+
+  // Use a filter to deserialize only the two fields we read ("version" and the
+  // board entry for this device). This bounds JsonDocument heap allocation to
+  // exactly those two strings, regardless of how many tokens the payload contains.
+  JsonDocument filter;
+  filter["version"] = true;
+  filter["boards"][boardKey.c_str()] = true;
+
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, jsonBuf);
+  DeserializationError err = deserializeJson(doc, jsonBuf,
+                                             DeserializationOption::Filter(filter));
   if (err) {
     LOGF_STATUS("VersionCheck: JSON parse error: %s", err.c_str());
     return;
   }
 
   const char* remoteVersion = doc["version"];
-
-  // Debug builds append " (debug)" to BOARD_NAME, but version.json uses the
-  // release name as the key. Strip the suffix so lookups succeed in both modes.
-  String boardKey = BOARD_NAME;
-  if (boardKey.endsWith(" (debug)")) boardKey.remove(boardKey.length() - 8);
-  const char* firmwareUrl = doc["boards"][boardKey.c_str()];
+  const char* firmwareUrl   = doc["boards"][boardKey.c_str()];
 
   if (!remoteVersion) {
     LOG_STATUS("VersionCheck: missing version field in version.json — skipping");
