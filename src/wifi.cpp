@@ -10,23 +10,26 @@
 #include <esp_efuse.h>
 #include "logger.h"
 
-// Exactly one of WIFI_AP_PASSWORD or WIFI_AP_OPEN must be defined.
-// WIFI_AP_PASSWORD sets a password for the provisioning AP (min 8 chars).
-// WIFI_AP_OPEN=1 explicitly opts into an open (password-less) AP — not for production.
-// Defining both or neither is a build error so developers must make an intentional choice.
+// Provisioning AP security policy:
+// - WIFI_AP_PASSWORD (min 8 chars): password-protected AP — recommended for production.
+// - WIFI_AP_OPEN=1: explicit opt-in to an open AP — template default, not for production.
+// Defining both is a build error. Defining neither falls back to open AP with a warning.
 #if defined(WIFI_AP_PASSWORD) && defined(WIFI_AP_OPEN)
   #error "Define either WIFI_AP_PASSWORD or WIFI_AP_OPEN=1, not both."
 #elif defined(WIFI_AP_PASSWORD)
   // ESP32 SoftAP requires a minimum password length of 8 characters.
   static_assert(sizeof(WIFI_AP_PASSWORD) - 1 >= 8,
                 "WIFI_AP_PASSWORD must be at least 8 characters (ESP32 SoftAP minimum).");
-#elif defined(WIFI_AP_OPEN)
-  // Literal build_flags entry (outer single quotes, inner double quotes):
-  //   -D WIFI_AP_PASSWORD='"yourpassword"'
-  #pragma message("WIFI_AP_OPEN set — provisioning AP has no password (not for production). " \
-                  "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' to secure the captive portal.")
 #else
-  #error "Set WIFI_AP_PASSWORD in build_flags, or define WIFI_AP_OPEN=1 to allow an open provisioning AP."
+  // Open AP: either WIFI_AP_OPEN=1 is set, or neither flag is defined (template default).
+  // Warn loudly in release builds so the intent is visible.
+  #if defined(NDEBUG)
+    #pragma message("WARNING: provisioning AP has no password in a release build. " \
+                    "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' in build_flags for production.")
+  #else
+    #pragma message("WIFI_AP_OPEN set — provisioning AP has no password (not for production). " \
+                    "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' to secure the captive portal.")
+  #endif
 #endif
 
 static WiFiManager wm;
@@ -61,8 +64,8 @@ void setupWifi() {
   LOGF_STATUS("Connect to WiFi AP : %s", apName.c_str());
   LOG_STATUS("Then open          : http://192.168.4.1");
   LOGF_STATUS("Portal closes in   : %d min", kPortalTimeoutSec / 60);
-#ifdef WIFI_AP_OPEN
-  LOG_STATUS("WARNING: provisioning AP has no password (WIFI_AP_OPEN set) — not for production.");
+#ifndef WIFI_AP_PASSWORD
+  LOG_STATUS("WARNING: provisioning AP has no password — not for production.");
 #endif
   LOG_STATUS("--------------------------------------------------------");
 
