@@ -165,9 +165,10 @@ void checkAndApplyUpdate() {
   String boardKey = BOARD_NAME;
   if (boardKey.endsWith(" (debug)")) boardKey.remove(boardKey.length() - 8);
 
-  // Use a filter to deserialize only the two fields we read ("version" and the
-  // board entry for this device). This bounds JsonDocument heap allocation to
-  // exactly those two strings, regardless of how many tokens the payload contains.
+  // Use a filter so ArduinoJson only allocates nodes for the two fields we
+  // actually read. Both JsonDocument objects are still dynamically allocated
+  // (ArduinoJson v7 has no fixed-capacity API), but the filter limits allocation
+  // to the "version" string and a single firmware URL — bounded in practice.
   JsonDocument filter;
   filter["version"] = true;
   filter["boards"][boardKey.c_str()] = true;
@@ -187,10 +188,19 @@ void checkAndApplyUpdate() {
     LOG_STATUS("VersionCheck: missing version field in version.json — skipping");
     return;
   }
+  // Sanity-check field lengths before use (guards against malformed/malicious payloads).
+  if (strlen(remoteVersion) > 32) {
+    LOG_STATUS("VersionCheck: remote version string too long — skipping");
+    return;
+  }
   if (!firmwareUrl || firmwareUrl[0] == '\0') {
     // No URL for this board is a normal state (e.g. placeholder version.json
     // before a release populates it). Log at debug level only.
     LOGF("VersionCheck: no firmware URL for board '%s' — skipping", boardKey.c_str());
+    return;
+  }
+  if (strlen(firmwareUrl) > 512) {
+    LOG_STATUS("VersionCheck: firmware URL too long — skipping");
     return;
   }
 
