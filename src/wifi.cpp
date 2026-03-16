@@ -12,24 +12,27 @@
 
 // Provisioning AP security policy:
 // - WIFI_AP_PASSWORD (min 8 chars): password-protected AP — recommended for production.
-// - WIFI_AP_OPEN=1: explicit opt-in to an open AP — template default, not for production.
-// Defining both is a build error. Defining neither falls back to open AP with a warning.
+// - WIFI_AP_OPEN=1: explicit opt-in to an open (password-less) AP — not for production.
+// Defining both is a build error. Release builds (NDEBUG) with neither flag are also an
+// error, to prevent accidentally shipping an open portal.
 #if defined(WIFI_AP_PASSWORD) && defined(WIFI_AP_OPEN)
   #error "Define either WIFI_AP_PASSWORD or WIFI_AP_OPEN=1, not both."
 #elif defined(WIFI_AP_PASSWORD)
   // ESP32 SoftAP requires a minimum password length of 8 characters.
   static_assert(sizeof(WIFI_AP_PASSWORD) - 1 >= 8,
                 "WIFI_AP_PASSWORD must be at least 8 characters (ESP32 SoftAP minimum).");
+#elif defined(WIFI_AP_OPEN)
+  // Explicit opt-in: open AP accepted, warn at compile time.
+  #pragma message("WIFI_AP_OPEN=1 — provisioning AP has no password. " \
+                  "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' to secure the captive portal.")
+#elif defined(NDEBUG)
+  // Release build with no AP policy set: fail loudly rather than silently ship an open portal.
+  #error "Release build: set WIFI_AP_PASSWORD in build_flags to secure the provisioning AP, " \
+         "or add WIFI_AP_OPEN=1 to explicitly allow an open AP."
 #else
-  // Open AP: either WIFI_AP_OPEN=1 is set, or neither flag is defined (template default).
-  // Warn loudly in release builds so the intent is visible.
-  #if defined(NDEBUG)
-    #pragma message("WARNING: provisioning AP has no password in a release build. " \
-                    "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' in build_flags for production.")
-  #else
-    #pragma message("WIFI_AP_OPEN set — provisioning AP has no password (not for production). " \
-                    "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' to secure the captive portal.")
-  #endif
+  // Debug build, no flag set: open AP allowed with a warning.
+  #pragma message("WIFI_AP_PASSWORD not set — provisioning AP will be open. " \
+                  "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' to secure the captive portal.")
 #endif
 
 static WiFiManager wm;

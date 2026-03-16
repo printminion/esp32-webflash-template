@@ -51,8 +51,10 @@ lib_deps =
 build_flags =
     -D FIRMWARE_VERSION='"dev"'
     -D PROJECT_NAME='"{project_name}"'
-    -D VERSION_CHECK_URL='"{version_check_url}"'
     -D ARDUINO_LOOP_STACK_SIZE=8192
+    ; VERSION_CHECK_URL is intentionally omitted from the template default.
+    ; Auto-OTA is an opt-in: add the line below to enable it:
+    ;   -D VERSION_CHECK_URL='"{version_check_url}"'
 """
 
 
@@ -90,8 +92,13 @@ def render_env(board: dict, debug: bool) -> str:
     if debug:
         lines.append("    -D DEBUG_BUILD")
         lines.append("    -D CORE_DEBUG_LEVEL=4")
+        lines.append("    -D WIFI_AP_OPEN=1")
     else:
         lines.append("    -D NDEBUG")
+        # Template default: open provisioning AP with a compile-time warning.
+        # Replace with -D WIFI_AP_PASSWORD='"yourpass"' (and remove WIFI_AP_OPEN)
+        # in your build_flags to secure the captive portal for production.
+        lines.append("    -D WIFI_AP_OPEN=1")
 
     lines.append(f"    -I boards/{bid}")
 
