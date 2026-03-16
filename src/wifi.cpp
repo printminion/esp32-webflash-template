@@ -10,16 +10,21 @@
 #include <esp_efuse.h>
 #include "logger.h"
 
-#ifndef WIFI_AP_PASSWORD
-  // Literal build_flags entry (outer single quotes, inner double quotes):
-  //   -D WIFI_AP_PASSWORD='"yourpassword"'
-  #pragma message("WIFI_AP_PASSWORD not set — provisioning AP will be open (no password). " \
-                  "Set in build_flags (outer single quotes, inner double quotes): " \
-                  "-D WIFI_AP_PASSWORD='\"yourpassword\"'")
-#else
+// Exactly one of WIFI_AP_PASSWORD or WIFI_AP_OPEN must be defined.
+// WIFI_AP_PASSWORD sets a password for the provisioning AP (min 8 chars).
+// WIFI_AP_OPEN=1 explicitly opts into an open (password-less) AP — not for production.
+// Leaving both undefined is an error so developers must make an intentional choice.
+#if defined(WIFI_AP_PASSWORD)
   // ESP32 SoftAP requires a minimum password length of 8 characters.
   static_assert(sizeof(WIFI_AP_PASSWORD) - 1 >= 8,
                 "WIFI_AP_PASSWORD must be at least 8 characters (ESP32 SoftAP minimum).");
+#elif defined(WIFI_AP_OPEN)
+  // Literal build_flags entry (outer single quotes, inner double quotes):
+  //   -D WIFI_AP_PASSWORD='"yourpassword"'
+  #pragma message("WIFI_AP_OPEN set — provisioning AP has no password (not for production). " \
+                  "Set -D WIFI_AP_PASSWORD='\"yourpassword\"' to secure the captive portal.")
+#else
+  #error "Set WIFI_AP_PASSWORD in build_flags, or define WIFI_AP_OPEN=1 to allow an open provisioning AP."
 #endif
 
 static WiFiManager wm;
@@ -54,9 +59,8 @@ void setupWifi() {
   LOGF_STATUS("Connect to WiFi AP : %s", apName.c_str());
   LOG_STATUS("Then open          : http://192.168.4.1");
   LOGF_STATUS("Portal closes in   : %d min", kPortalTimeoutSec / 60);
-#ifndef WIFI_AP_PASSWORD
-  LOG_STATUS("WARNING: provisioning AP has no password — anyone nearby can connect.");
-  LOG_STATUS("Set WIFI_AP_PASSWORD in build_flags to secure the captive portal.");
+#ifdef WIFI_AP_OPEN
+  LOG_STATUS("WARNING: provisioning AP has no password (WIFI_AP_OPEN set) — not for production.");
 #endif
   LOG_STATUS("--------------------------------------------------------");
 

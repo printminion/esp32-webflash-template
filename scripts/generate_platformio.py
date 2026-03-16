@@ -53,6 +53,7 @@ build_flags =
     -D PROJECT_NAME='"{project_name}"'
     -D VERSION_CHECK_URL='"{version_check_url}"'
     -D ARDUINO_LOOP_STACK_SIZE=8192
+    -D WIFI_AP_OPEN=1
 """
 
 
