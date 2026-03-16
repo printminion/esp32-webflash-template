@@ -110,7 +110,10 @@ void checkAndApplyUpdate() {
 #endif
 
   HTTPClient http;
-  http.begin(client, VERSION_CHECK_URL);
+  if (!http.begin(client, VERSION_CHECK_URL)) {
+    LOG_STATUS("VersionCheck: HTTP client init failed — skipping");
+    return;
+  }
   http.setTimeout(8000);
   int code = http.GET();
 
@@ -120,12 +123,17 @@ void checkAndApplyUpdate() {
     return;
   }
 
-  // Reject oversized responses before allocating a String (guards against
-  // a malicious or misconfigured server sending megabytes of data).
-  int contentLength = http.getSize();
-  if (contentLength > 4096) {
-    LOGF_STATUS("VersionCheck: response too large (%d bytes) — skipping", contentLength);
-    http.end();
+  // Read into a fixed-size buffer to guard against oversized and chunked
+  // responses (getSize() returns -1 for chunked encoding, so Content-Length
+  // alone cannot bound memory use). Treat a full buffer as an error since we
+  // cannot know whether more data follows.
+  char jsonBuf[4097];
+  int bytesRead = http.getStream().readBytes(jsonBuf, sizeof(jsonBuf) - 1);
+  jsonBuf[bytesRead] = '\0';
+  http.end();
+
+  if (bytesRead == (int)(sizeof(jsonBuf) - 1)) {
+    LOG_STATUS("VersionCheck: response too large — skipping");
     return;
   }
 
@@ -139,8 +147,7 @@ void checkAndApplyUpdate() {
   //   }
   // }
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, http.getStream());
-  http.end();
+  DeserializationError err = deserializeJson(doc, jsonBuf);
   if (err) {
     LOGF_STATUS("VersionCheck: JSON parse error: %s", err.c_str());
     return;
