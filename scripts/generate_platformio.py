@@ -95,10 +95,12 @@ def render_env(board: dict, debug: bool) -> str:
         lines.append("    -D WIFI_AP_OPEN=1")
     else:
         lines.append("    -D NDEBUG")
-        # Release envs intentionally omit WIFI_AP_OPEN and WIFI_AP_PASSWORD.
-        # wifi.cpp will error at compile time unless one of them is set:
-        #   - Secure:  add -D WIFI_AP_PASSWORD='"yourpass"' to this env's build_flags
-        #   - Opt-out: add -D WIFI_AP_OPEN=1 to explicitly allow an open AP
+        # Emit explanatory comments so users understand why the release env
+        # doesn't compile without an explicit WiFi AP policy.
+        lines.append("    ; wifi.cpp requires WIFI_AP_PASSWORD or WIFI_AP_OPEN=1 for release builds.")
+        lines.append("    ; Add one of the following to build_flags:")
+        lines.append("    ;   -D WIFI_AP_PASSWORD='\"yourpassword\"'  ; password-protected (recommended)")
+        lines.append("    ;   -D WIFI_AP_OPEN=1                      ; open AP — not for production")
 
     lines.append(f"    -I boards/{bid}")
 
