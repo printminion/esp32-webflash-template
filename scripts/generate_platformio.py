@@ -95,10 +95,10 @@ def render_env(board: dict, debug: bool) -> str:
         lines.append("    -D WIFI_AP_OPEN=1")
     else:
         lines.append("    -D NDEBUG")
-        # Template default: open provisioning AP with a compile-time warning.
-        # Replace with -D WIFI_AP_PASSWORD='"yourpass"' (and remove WIFI_AP_OPEN)
-        # in your build_flags to secure the captive portal for production.
-        lines.append("    -D WIFI_AP_OPEN=1")
+        # Release envs intentionally omit WIFI_AP_OPEN and WIFI_AP_PASSWORD.
+        # wifi.cpp will error at compile time unless one of them is set:
+        #   - Secure:  add -D WIFI_AP_PASSWORD='"yourpass"' to this env's build_flags
+        #   - Opt-out: add -D WIFI_AP_OPEN=1 to explicitly allow an open AP
 
     lines.append(f"    -I boards/{bid}")
 

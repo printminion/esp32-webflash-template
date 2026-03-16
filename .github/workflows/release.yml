@@ -70,6 +70,10 @@ jobs:
           sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
 
       - name: Build ${{ matrix.environment }}
+        # WIFI_AP_OPEN=1: release envs omit this flag by default so local builds require an
+        # explicit AP policy. CI injects it here so the template compiles out of the box.
+        env:
+          PLATFORMIO_BUILD_FLAGS: "-D WIFI_AP_OPEN=1"
         run: pio run -e ${{ matrix.environment }}
 
       - name: Create merged firmware binary
