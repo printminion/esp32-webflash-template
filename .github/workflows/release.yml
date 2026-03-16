@@ -82,7 +82,7 @@ jobs:
               f.write(content)
           EOF
 
-      - name: Build ${{ matrix.environment }}
+      - name: Set WiFi AP build flags
         # WiFi AP policy for release builds (requires one of the following):
         #   1. Set the WIFI_AP_PASSWORD repository secret → password-protected captive portal.
         #   2. Set the WIFI_AP_ALLOW_OPEN_RELEASE repository variable to "1" → open AP (not for production).
@@ -91,17 +91,28 @@ jobs:
           WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
           WIFI_AP_ALLOW_OPEN: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
         run: |
-          if [ -n "$WIFI_AP_PASSWORD_SECRET" ]; then
-            # Use printf %q to safely escape the secret value before embedding in flags.
-            ESCAPED=$(printf '%q' "$WIFI_AP_PASSWORD_SECRET")
-            export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"${ESCAPED}\"'"
-          elif [ "$WIFI_AP_ALLOW_OPEN" = "1" ]; then
-            export PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1"
-          else
-            echo "::error::Set the WIFI_AP_PASSWORD secret (recommended) or the WIFI_AP_ALLOW_OPEN_RELEASE variable to '1' before releasing."
-            exit 1
-          fi
-          pio run -e ${{ matrix.environment }}
+          python3 - <<'EOF'
+          import os, sys
+          pw = os.environ.get('WIFI_AP_PASSWORD_SECRET', '')
+          allow_open = os.environ.get('WIFI_AP_ALLOW_OPEN', '')
+          github_env = os.environ['GITHUB_ENV']
+          if pw:
+              # Escape only backslashes and double-quotes for the C string literal.
+              # Avoids shell quoting (%q) which would alter the secret's actual bytes.
+              c_escaped = pw.replace('\\', '\\\\').replace('"', '\\"')
+              flag = "-D WIFI_AP_PASSWORD='\"" + c_escaped + "\"'"
+              with open(github_env, 'a') as f:
+                  f.write("PLATFORMIO_BUILD_FLAGS=" + flag + "\n")
+          elif allow_open == '1':
+              with open(github_env, 'a') as f:
+                  f.write("PLATFORMIO_BUILD_FLAGS=-D WIFI_AP_OPEN=1\n")
+          else:
+              print("::error::Set the WIFI_AP_PASSWORD secret (recommended) or the WIFI_AP_ALLOW_OPEN_RELEASE variable to '1' before releasing.")
+              sys.exit(1)
+          EOF
+
+      - name: Build ${{ matrix.environment }}
+        run: pio run -e ${{ matrix.environment }}
 
       - name: Create merged firmware binary
         run: |
