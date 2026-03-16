@@ -130,11 +130,13 @@ void checkAndApplyUpdate() {
     return;
   }
 
-  // Two read paths to avoid blocking on stream timeout:
-  // - Known Content-Length: readBytes() reads exactly N bytes without waiting.
+  // Two read paths to avoid stream timeout blocking:
+  // - Known Content-Length: readBytes(N) returns as soon as N bytes arrive
+  //   (no extra wait since the connection closes after the last byte).
   // - Unknown/chunked (getSize() == -1): getString() handles chunked decoding
-  //   and returns only available data, then we size-check the result.
-  char jsonBuf[4097];
+  //   internally and returns after the final chunk, then we size-check the result.
+  // Static buffer: avoids consuming ~4KB of the 8KB loop task stack.
+  static char jsonBuf[4097];
   if (contentLength > 0) {
     int bytesRead = http.getStream().readBytes(jsonBuf, contentLength);
     jsonBuf[bytesRead] = '\0';
