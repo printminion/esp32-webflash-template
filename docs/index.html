@@ -405,8 +405,8 @@
     <div class="card-body">
 
       <div class="channel-toggle">
-        <button class="channel-btn active" id="btn-release" onclick="setChannel('release')">⬟ Release</button>
-        <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')">⬡ Dev</button>
+        <button class="channel-btn active" id="btn-release" onclick="setChannel('release')" aria-pressed="true">⬟ Release</button>
+        <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
       </div>
 
       <div class="field-label">Select board</div>
@@ -491,7 +491,9 @@
   function setChannel(ch) {
     channel = ch;
     document.getElementById('btn-release').classList.toggle('active', ch === 'release');
+    document.getElementById('btn-release').setAttribute('aria-pressed', String(ch === 'release'));
     document.getElementById('btn-dev').classList.toggle('active', ch === 'dev');
+    document.getElementById('btn-dev').setAttribute('aria-pressed', String(ch === 'dev'));
     loadManifest();
   }
 
