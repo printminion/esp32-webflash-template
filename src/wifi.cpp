@@ -11,8 +11,11 @@
 #include "logger.h"
 
 #ifndef WIFI_AP_PASSWORD
+  // Literal build_flags entry (outer single quotes, inner double quotes):
+  //   -D WIFI_AP_PASSWORD='"yourpassword"'
   #pragma message("WIFI_AP_PASSWORD not set — provisioning AP will be open (no password). " \
-                  "Set in build_flags: -D WIFI_AP_PASSWORD='\"yourpassword\"'")
+                  "Set in build_flags (outer single quotes, inner double quotes): " \
+                  "-D WIFI_AP_PASSWORD='\"yourpassword\"'")
 #endif
 
 static WiFiManager wm;
