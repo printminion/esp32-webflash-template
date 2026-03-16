@@ -120,7 +120,7 @@ jobs:
         run: |
           VERSION="${{ needs.setup.outputs.version }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          BASE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/dev"
+          BASE_URL="$(jq -r '.installer.baseUrl' project.json)/dev"
           mkdir -p docs/dev
 
           BUILDS=$(jq -c --arg bu "$BASE_URL" --arg v "$VERSION" \
