@@ -13,8 +13,9 @@
 // Provisioning AP security policy:
 // - WIFI_AP_PASSWORD (min 8 chars): password-protected AP — recommended for production.
 // - WIFI_AP_OPEN=1: explicit opt-in to an open (password-less) AP — not for production.
-// Defining both is a build error. Release builds (NDEBUG) with neither flag are also an
-// error, to prevent accidentally shipping an open portal.
+// Defining WIFI_AP_PASSWORD alongside WIFI_AP_OPEN=1 is a build error.
+// Release builds (NDEBUG) with neither flag also error, to prevent accidentally
+// shipping an open portal.
 #if defined(WIFI_AP_PASSWORD) && WIFI_AP_OPEN
   #error "Define either WIFI_AP_PASSWORD or WIFI_AP_OPEN=1, not both."
 #elif defined(WIFI_AP_PASSWORD)

@@ -17,6 +17,10 @@
 // Endpoint is active only when credentials are available.
 #if defined(OTA_USERNAME) && defined(OTA_PASSWORD)
   #define OTA_ENDPOINT_ACTIVE 1
+  // Guard against empty-string credentials (e.g. -D OTA_USERNAME='""'), which would
+  // activate the endpoint with no effective authentication.
+  static_assert(sizeof(OTA_USERNAME) > 1, "OTA_USERNAME must not be empty.");
+  static_assert(sizeof(OTA_PASSWORD) > 1, "OTA_PASSWORD must not be empty.");
 #else
   #define OTA_ENDPOINT_ACTIVE 0
 #endif

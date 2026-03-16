@@ -138,10 +138,14 @@ fi
 
 echo "==> Building ${ENV}..."
 # Release envs require WIFI_AP_PASSWORD or WIFI_AP_OPEN=1 (see src/wifi.cpp).
-# Inject WIFI_AP_OPEN=1 here so the script works out of the box, mirroring CI.
-# Override by passing PLATFORMIO_BUILD_FLAGS in the environment before invoking
-# this script (e.g. PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"pass\"'" ./build_merged.sh ...).
-PLATFORMIO_BUILD_FLAGS="${PLATFORMIO_BUILD_FLAGS:-} -D WIFI_AP_OPEN=1" \
+# Inject WIFI_AP_OPEN=1 only when the caller hasn't already supplied either flag,
+# so setting PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"pass\"'" works correctly.
+_extra_flags=""
+if [[ "${PLATFORMIO_BUILD_FLAGS:-}" != *WIFI_AP_PASSWORD* && \
+      "${PLATFORMIO_BUILD_FLAGS:-}" != *WIFI_AP_OPEN* ]]; then
+  _extra_flags="-D WIFI_AP_OPEN=1"
+fi
+PLATFORMIO_BUILD_FLAGS="${PLATFORMIO_BUILD_FLAGS:-} ${_extra_flags}" \
   "$PIO" run -e "${ENV}"
 
 # ── Merge ─────────────────────────────────────────────────────────────────────
