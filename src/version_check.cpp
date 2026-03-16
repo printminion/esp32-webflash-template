@@ -212,6 +212,8 @@ void checkAndApplyUpdate() {
         lastPct = pct;
       }
     }
+    // Yield to other tasks to prevent watchdog timeouts during long downloads.
+    vTaskDelay(1);
   }
 
   bool complete = esp_https_ota_is_complete_data_received(handle);
