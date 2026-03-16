@@ -72,7 +72,7 @@ for candidate in \
     "$HOME/.platformio/penv/Scripts/platformio" \
     "$HOME/.platformio/penv/Scripts/platformio.exe" \
     "$HOME/.platformio/penv/bin/platformio"; do
-  if [[ -f "$candidate" ]] || command -v "$candidate" &>/dev/null 2>&1; then
+  if [[ -x "$candidate" ]] || command -v "$candidate" &>/dev/null 2>&1; then
     PIO="$candidate"
     break
   fi
