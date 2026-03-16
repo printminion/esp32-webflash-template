@@ -57,8 +57,8 @@ void setupWifi() {
   }
   char macSuffix[13];
   snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x%02x%02x%02x",
-           macBytes[0], macBytes[1], macBytes[2],
-           macBytes[3], macBytes[4], macBytes[5]);
+           (unsigned)macBytes[0], (unsigned)macBytes[1], (unsigned)macBytes[2],
+           (unsigned)macBytes[3], (unsigned)macBytes[4], (unsigned)macBytes[5]);
   // WiFi SSIDs are limited to 32 bytes. Cap the version portion so the full
   // 12-char MAC suffix (which guarantees uniqueness) is always preserved.
   // Layout: "ESP32-" (6) + version (≤13) + "-" (1) + mac (12) = ≤32
