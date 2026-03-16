@@ -195,6 +195,11 @@ void checkAndApplyUpdate() {
   // ── 4. Apply OTA update ───────────────────────────────
   LOGF_STATUS("Downloading update %s...", remoteVersion);
 
+  // Security note: integrity of the downloaded firmware depends on HTTPS TLS
+  // validation of the host serving version.json and the firmware binary.
+  // A future hardening step would add per-board SHA-256 hashes to version.json
+  // so the downloaded image can be verified before rebooting.
+
   // Reject non-https URLs — firmwareUrl comes from JSON and must use TLS.
   if (strncmp(firmwareUrl, "https://", 8) != 0) {
     LOGF_STATUS("VersionCheck: firmware URL must start with https:// — aborting (%s)", firmwareUrl);
@@ -246,7 +251,7 @@ void checkAndApplyUpdate() {
   if (complete && finish_ret == ESP_OK) {
     LOG_STATUS("OTA complete — rebooting");
     delay(500);
-    esp_restart();
+    ESP.restart();
   } else {
     LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", (unsigned)finish_ret);
   }
@@ -256,7 +261,7 @@ void checkAndApplyUpdate() {
   if (ret == ESP_OK) {
     LOG_STATUS("OTA complete — rebooting");
     delay(500);
-    esp_restart();
+    ESP.restart();
   } else {
     LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", (unsigned)ret);
   }
