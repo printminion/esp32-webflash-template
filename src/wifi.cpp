@@ -13,8 +13,10 @@
 // Exactly one of WIFI_AP_PASSWORD or WIFI_AP_OPEN must be defined.
 // WIFI_AP_PASSWORD sets a password for the provisioning AP (min 8 chars).
 // WIFI_AP_OPEN=1 explicitly opts into an open (password-less) AP — not for production.
-// Leaving both undefined is an error so developers must make an intentional choice.
-#if defined(WIFI_AP_PASSWORD)
+// Defining both or neither is a build error so developers must make an intentional choice.
+#if defined(WIFI_AP_PASSWORD) && defined(WIFI_AP_OPEN)
+  #error "Define either WIFI_AP_PASSWORD or WIFI_AP_OPEN=1, not both."
+#elif defined(WIFI_AP_PASSWORD)
   // ESP32 SoftAP requires a minimum password length of 8 characters.
   static_assert(sizeof(WIFI_AP_PASSWORD) - 1 >= 8,
                 "WIFI_AP_PASSWORD must be at least 8 characters (ESP32 SoftAP minimum).");

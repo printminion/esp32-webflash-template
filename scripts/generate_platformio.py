@@ -53,7 +53,6 @@ build_flags =
     -D PROJECT_NAME='"{project_name}"'
     -D VERSION_CHECK_URL='"{version_check_url}"'
     -D ARDUINO_LOOP_STACK_SIZE=8192
-    -D WIFI_AP_OPEN=1
 """
 
 
@@ -91,6 +90,9 @@ def render_env(board: dict, debug: bool) -> str:
     if debug:
         lines.append("    -D DEBUG_BUILD")
         lines.append("    -D CORE_DEBUG_LEVEL=4")
+        # Open provisioning AP is acceptable in debug builds; release builds
+        # must set WIFI_AP_PASSWORD explicitly (enforced by wifi.cpp #error).
+        lines.append("    -D WIFI_AP_OPEN=1")
     else:
         lines.append("    -D NDEBUG")
 
