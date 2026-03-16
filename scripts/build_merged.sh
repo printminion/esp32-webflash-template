@@ -52,7 +52,12 @@ fi
 shift
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --flash) FLASH_PORT="${2:-}"; shift 2 ;;
+    --flash)
+      if [[ -z "${2:-}" ]]; then
+        echo "Error: --flash requires a port argument (e.g. --flash COM3 or --flash /dev/ttyUSB0)"
+        exit 1
+      fi
+      FLASH_PORT="$2"; shift 2 ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
