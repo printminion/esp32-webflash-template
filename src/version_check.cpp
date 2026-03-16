@@ -146,6 +146,8 @@ void checkAndApplyUpdate() {
   //     ...
   //   }
   // }
+  // JsonDocument allocation is bounded by jsonBuf (≤4096 bytes), so heap use
+  // is predictable. ArduinoJson v7 does not expose a fixed-capacity API.
   JsonDocument doc;
   DeserializationError err = deserializeJson(doc, jsonBuf);
   if (err) {
