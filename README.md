@@ -40,17 +40,17 @@ Install [PlatformIO](https://platformio.org/) then:
 > Debug environments (no `-D NDEBUG`) allow an open AP by default — no flag required.
 
 ```bash
-# Build all release environments
-pio run
+# Build all environments (requires WiFi AP flag — see note above)
+PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run
 
-# Build a specific board
-pio run -e seeed_xiao_esp32c3
+# Build a specific release board
+PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32c3
 
-# Build debug variant
+# Build debug variant (no flag required — open AP allowed by default)
 pio run -e seeed_xiao_esp32c3-debug
 
 # Upload to connected board
-pio run -e seeed_xiao_esp32c3 -t upload
+PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32c3 -t upload
 
 # Monitor serial output
 pio device monitor

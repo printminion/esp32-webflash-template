@@ -65,12 +65,14 @@ jobs:
         run: pip install uv
 
       - name: Inject firmware version
+        env:
+          INJECT_VERSION: ${{ github.ref_name }}
         run: |
-          # Use Python for safe in-place replacement — avoids sed delimiter conflicts
-          # when VERSION contains '/', '&', or other sed-special characters.
+          # Pass the version via an env var so quotes/backslashes in the value
+          # never break the Python string literal or cause injection issues.
           python - <<'EOF'
-          import re, sys
-          version = "${{ github.ref_name }}"
+          import os, re
+          version = os.environ["INJECT_VERSION"]
           with open("platformio.ini", "r") as f:
               content = f.read()
           replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
@@ -183,7 +185,7 @@ jobs:
           PROJECT_NAME=$(jq -r '.project.name' project.json)
           # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled).
           # Derive base URL from installer.baseUrl in project.json so forks/custom domains work.
-          INSTALLER_BASE=$(jq -r '.installer.baseUrl' project.json)
+          INSTALLER_BASE=$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)
           PAGES_URL="${INSTALLER_BASE}/firmware/${VERSION}"
           # version.json: fetched by firmware via esp_https_ota — GitHub Releases URLs are fine
           RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
@@ -231,7 +233,7 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          PAGES_URL="$(jq -r '.installer.baseUrl' project.json)/"
+          PAGES_URL="$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)/"
           {
             echo "## ${PROJECT_NAME} ${VERSION}"
             echo ""

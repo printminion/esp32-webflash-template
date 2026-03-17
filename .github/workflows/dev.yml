@@ -69,12 +69,14 @@ jobs:
         run: pip install uv
 
       - name: Inject firmware version
+        env:
+          INJECT_VERSION: ${{ needs.setup.outputs.version }}
         run: |
-          # Use Python for safe in-place replacement — avoids sed delimiter conflicts
-          # when VERSION contains '/', '&', or other sed-special characters.
+          # Pass the version via an env var so quotes/backslashes in the value
+          # never break the Python string literal or cause injection issues.
           python - <<'EOF'
-          import re
-          version = "${{ needs.setup.outputs.version }}"
+          import os, re
+          version = os.environ["INJECT_VERSION"]
           with open("platformio.ini", "r") as f:
               content = f.read()
           replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
@@ -155,7 +157,7 @@ jobs:
         run: |
           VERSION="${{ needs.setup.outputs.version }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          BASE_URL="$(jq -r '.installer.baseUrl' project.json)/dev"
+          BASE_URL="$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)/dev"
           mkdir -p docs/dev
 
           BUILDS=$(jq -c --arg bu "$BASE_URL" --arg v "$VERSION" \
