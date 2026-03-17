@@ -66,8 +66,51 @@ jobs:
 
       - name: Inject firmware version
         run: |
-          VERSION="${{ github.ref_name }}"
-          sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+          # Use Python for safe in-place replacement — avoids sed delimiter conflicts
+          # when VERSION contains '/', '&', or other sed-special characters.
+          python - <<'EOF'
+          import re, sys
+          version = "${{ github.ref_name }}"
+          with open("platformio.ini", "r") as f:
+              content = f.read()
+          replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
+          content = re.sub(
+              r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
+              lambda _: replacement,
+              content,
+          )
+          with open("platformio.ini", "w") as f:
+              f.write(content)
+          EOF
+
+      - name: Set WiFi AP build flags
+        # WiFi AP policy for release builds (requires one of the following):
+        #   1. Set the WIFI_AP_PASSWORD repository secret → password-protected captive portal.
+        #   2. Set the WIFI_AP_ALLOW_OPEN_RELEASE repository variable to "1" → open AP (not for production).
+        # If neither is set the job fails so open-AP firmware is never published by accident.
+        env:
+          WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
+          WIFI_AP_ALLOW_OPEN: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
+        run: |
+          python3 - <<'EOF'
+          import os, sys
+          pw = os.environ.get('WIFI_AP_PASSWORD_SECRET', '')
+          allow_open = os.environ.get('WIFI_AP_ALLOW_OPEN', '')
+          github_env = os.environ['GITHUB_ENV']
+          if pw:
+              # Escape only backslashes and double-quotes for the C string literal.
+              # Avoids shell quoting (%q) which would alter the secret's actual bytes.
+              c_escaped = pw.replace('\\', '\\\\').replace('"', '\\"')
+              flag = "-D WIFI_AP_PASSWORD='\"" + c_escaped + "\"'"
+              with open(github_env, 'a') as f:
+                  f.write("PLATFORMIO_BUILD_FLAGS=" + flag + "\n")
+          elif allow_open == '1':
+              with open(github_env, 'a') as f:
+                  f.write("PLATFORMIO_BUILD_FLAGS=-D WIFI_AP_OPEN=1\n")
+          else:
+              print("::error::Set the WIFI_AP_PASSWORD secret (recommended) or the WIFI_AP_ALLOW_OPEN_RELEASE variable to '1' before releasing.")
+              sys.exit(1)
+          EOF
 
       - name: Build ${{ matrix.environment }}
         run: pio run -e ${{ matrix.environment }}
@@ -78,7 +121,7 @@ jobs:
           # This is required for ESP Web Tools — flashing only the app binary (offset 0x10000)
           # at offset 0 overwrites the bootloader and causes a crash-loop on next boot.
           mkdir -p firmware
-          esptool.py --chip ${{ matrix.chip }} merge_bin \
+          python -m esptool --chip ${{ matrix.chip }} merge_bin \
             -o firmware/firmware-${{ matrix.environment }}-${{ github.ref_name }}.bin \
             ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.environment }}/bootloader.bin \
             0x8000 .pio/build/${{ matrix.environment }}/partitions.bin \
@@ -108,6 +151,17 @@ jobs:
           ref: main
           fetch-depth: 1
 
+      - name: Fetch tag commit
+        # The checkout above is shallow (fetch-depth: 1) and targets main.
+        # github.sha is the tagged commit, which may not be in the shallow clone.
+        # Fetch it explicitly so git show can access the tag's tree.
+        run: git fetch origin ${{ github.sha }} --depth=1
+
+      - name: Restore project.json from tag commit
+        # Manifests are generated from project.json; use the tag's copy (not
+        # main's) so the board list always matches the binaries that were built.
+        run: git show ${{ github.sha }}:project.json > project.json
+
       - name: Download all firmware artifacts
         uses: actions/download-artifact@v4.2.0
         with:
@@ -127,8 +181,10 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled)
-          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/firmware/${VERSION}"
+          # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled).
+          # Derive base URL from installer.baseUrl in project.json so forks/custom domains work.
+          INSTALLER_BASE=$(jq -r '.installer.baseUrl' project.json)
+          PAGES_URL="${INSTALLER_BASE}/firmware/${VERSION}"
           # version.json: fetched by firmware via esp_https_ota — GitHub Releases URLs are fine
           RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
 
@@ -165,7 +221,7 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          PAGES_URL="$(jq -r '.installer.baseUrl' project.json)/"
           {
             echo "## ${PROJECT_NAME} ${VERSION}"
             echo ""
