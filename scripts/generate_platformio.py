@@ -52,6 +52,9 @@ build_flags =
     -D FIRMWARE_VERSION='"dev"'
     -D PROJECT_NAME='"{project_name}"'
     -D ARDUINO_LOOP_STACK_SIZE=8192
+    ; VERSION_CHECK_URL is intentionally omitted from the template default.
+    ; Auto-OTA is an opt-in: add the line below to enable it:
+    ;   -D VERSION_CHECK_URL='"{version_check_url}"'
 """
 
 
@@ -89,13 +92,17 @@ def render_env(board: dict, debug: bool) -> str:
     if debug:
         lines.append("    -D DEBUG_BUILD")
         lines.append("    -D CORE_DEBUG_LEVEL=4")
+        # WIFI_AP_OPEN is intentionally omitted: wifi.cpp already allows an open AP in
+        # debug builds (no NDEBUG) without any AP flag, and omitting it here lets users
+        # set WIFI_AP_PASSWORD globally without hitting the "both defined" build error.
     else:
         lines.append("    -D NDEBUG")
-
-    # OTA credentials — same defaults in both release and debug.
-    # Override with secure values for production deployments.
-    lines.append("    -D OTA_USERNAME='\"esp32\"'")
-    lines.append("    -D OTA_PASSWORD='\"esp32\"'")
+        # Emit explanatory comments so users understand why the release env
+        # doesn't compile without an explicit WiFi AP policy.
+        lines.append("    ; wifi.cpp requires WIFI_AP_PASSWORD or WIFI_AP_OPEN=1 for release builds.")
+        lines.append("    ; Add one of the following to build_flags:")
+        lines.append("    ;   -D WIFI_AP_PASSWORD='\"yourpassword\"'  ; password-protected (recommended)")
+        lines.append("    ;   -D WIFI_AP_OPEN=1                      ; open AP — not for production")
 
     lines.append(f"    -I boards/{bid}")
 
@@ -106,8 +113,10 @@ def render_env(board: dict, debug: bool) -> str:
 
 
 def generate(config: dict) -> str:
-    project_name = config["project"]["name"]
-    boards       = config["boards"]
+    project_name      = config["project"]["name"]
+    installer_base    = config.get("installer", {}).get("baseUrl", "").rstrip("/")
+    version_check_url = f"{installer_base}/version.json" if installer_base else ""
+    boards            = config["boards"]
 
     parts = [HEADER.rstrip()]
 
@@ -116,7 +125,10 @@ def generate(config: dict) -> str:
     parts.append(PLATFORMIO_SECTION.rstrip() + "\n" + default_envs)
 
     # Shared [env]
-    parts.append(ENV_SHARED.format(project_name=project_name).rstrip())
+    parts.append(ENV_SHARED.format(
+        project_name=project_name,
+        version_check_url=version_check_url,
+    ).rstrip())
 
     # Per-board sections
     for board in boards:
