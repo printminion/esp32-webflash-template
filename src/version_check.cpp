@@ -15,6 +15,7 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <cerrno>
 #include <esp_idf_version.h>
 #include <esp_https_ota.h>
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
@@ -71,17 +72,25 @@ static uint32_t parseSemver(const char* s, bool* valid) {
   *valid = false;
   if (!s || !*s) return 0;
   if (*s == 'v') s++;               // strip leading 'v'
-  // Use unsigned long to avoid UB when the version string component exceeds UINT_MAX.
-  // Range checks below reject values that overflow the packed uint32 bitfield.
-  unsigned long maj = 0, min = 0, pat = 0;
-  int consumed = 0;
-  if (sscanf(s, "%lu.%lu.%lu%n", &maj, &min, &pat, &consumed) != 3) return 0;
-  if (s[consumed] != '\0') return 0;  // reject suffixes: -rc1, +meta, etc.
+  // Use strtoul with errno/endptr checks to safely reject oversized inputs
+  // without relying on sscanf overflow behaviour (implementation-defined).
+  char* end = nullptr;
+  errno = 0;
+  unsigned long maj = strtoul(s, &end, 10);
+  if (errno || end == s || *end != '.') return 0;
+  s = end + 1;
+  errno = 0;
+  unsigned long minorVer = strtoul(s, &end, 10);
+  if (errno || end == s || *end != '.') return 0;
+  s = end + 1;
+  errno = 0;
+  unsigned long pat = strtoul(s, &end, 10);
+  if (errno || end == s || *end != '\0') return 0;  // reject suffixes: -rc1, +meta, etc.
   // Reject out-of-range components to prevent bitfield overflow:
   // major: 12-bit (0–4095), minor/patch: 10-bit each (0–1023).
-  if (maj > 4095 || min > 1023 || pat > 1023) return 0;
+  if (maj > 4095 || minorVer > 1023 || pat > 1023) return 0;
   *valid = true;
-  return (maj << 20) | (min << 10) | pat;
+  return (maj << 20) | (minorVer << 10) | pat;
 }
 
 // ── Public API ────────────────────────────────────────────

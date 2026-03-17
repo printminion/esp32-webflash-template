@@ -73,9 +73,10 @@ jobs:
           version = "${{ github.ref_name }}"
           with open("platformio.ini", "r") as f:
               content = f.read()
+          replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
           content = re.sub(
               r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
-              f"-D FIRMWARE_VERSION='\"{ version }\"'",
+              lambda _: replacement,
               content,
           )
           with open("platformio.ini", "w") as f:
