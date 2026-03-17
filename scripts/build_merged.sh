@@ -87,6 +87,18 @@ if [[ -z "$PIO" ]]; then
   exit 1
 fi
 
+# Locate python — prefer python3, fall back to python (Windows uses the latter)
+PYTHON=""
+for candidate in python3 python; do
+  if command -v "$candidate" &>/dev/null 2>&1; then
+    PYTHON="$candidate"; break
+  fi
+done
+if [[ -z "$PYTHON" ]]; then
+  echo "Error: python3 or python not found on PATH."
+  exit 1
+fi
+
 # Locate esptool — prefer running as a Python module to avoid missing-deps issues
 # with the standalone script in PlatformIO's bundled package.
 ESPTOOL_CMD=()
@@ -102,27 +114,15 @@ for pio_python in \
   fi
 done
 
-# Fall back to system Python
+# Fall back to system Python (PYTHON is always set at this point)
 if [[ ${#ESPTOOL_CMD[@]} -eq 0 ]]; then
-  if python -m esptool version &>/dev/null 2>&1; then
-    ESPTOOL_CMD=(python -m esptool)
+  if "$PYTHON" -m esptool version &>/dev/null 2>&1; then
+    ESPTOOL_CMD=("$PYTHON" -m esptool)
   else
     echo "esptool not found in PlatformIO or system Python — installing..."
-    python -m pip install esptool
-    ESPTOOL_CMD=(python -m esptool)
+    "$PYTHON" -m pip install esptool
+    ESPTOOL_CMD=("$PYTHON" -m esptool)
   fi
-fi
-
-# Locate python — prefer python3, fall back to python (Windows uses the latter)
-PYTHON=""
-for candidate in python3 python; do
-  if command -v "$candidate" &>/dev/null 2>&1; then
-    PYTHON="$candidate"; break
-  fi
-done
-if [[ -z "$PYTHON" ]]; then
-  echo "Error: python3 or python not found on PATH."
-  exit 1
 fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
@@ -137,18 +137,23 @@ trap 'cp "$PLATFORMIO_BACKUP" platformio.ini; rm -f "$PLATFORMIO_BACKUP"' EXIT
 echo ""
 echo "==> Injecting firmware version: ${VERSION}"
 # Use Python for safe in-place replacement — avoids sed GNU/BSD differences and
-# handles any characters in VERSION (e.g. '/', '&') without delimiter conflicts.
-"$PYTHON" - <<EOF
-import re
-version = "${VERSION}"
+# handles any characters in VERSION (e.g. '/', '&', '"', '\') without conflicts.
+# VERSION is passed via the environment (not interpolated into the script source)
+# so quotes or backslashes in the version string cannot break the Python code.
+VERSION="$VERSION" "$PYTHON" - <<'EOF'
+import os, re, sys
+version = os.environ["VERSION"]
 with open("platformio.ini", "r") as f:
     content = f.read()
 replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
-content = re.sub(
+content, count = re.subn(
     r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
     lambda _: replacement,
     content,
 )
+if count == 0:
+    print("error: FIRMWARE_VERSION build flag not found in platformio.ini", file=sys.stderr)
+    sys.exit(1)
 with open("platformio.ini", "w") as f:
     f.write(content)
 EOF
