@@ -157,7 +157,7 @@ jobs:
         run: |
           VERSION="${{ needs.setup.outputs.version }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          BASE_URL="$(jq -r '.installer.baseUrl' project.json)/dev"
+          BASE_URL="$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)/dev"
           mkdir -p docs/dev
 
           BUILDS=$(jq -c --arg bu "$BASE_URL" --arg v "$VERSION" \

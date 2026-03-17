@@ -87,6 +87,18 @@ if [[ -z "$PIO" ]]; then
   exit 1
 fi
 
+# Locate python — prefer python3, fall back to python (Windows uses the latter)
+PYTHON=""
+for candidate in python3 python; do
+  if command -v "$candidate" &>/dev/null 2>&1; then
+    PYTHON="$candidate"; break
+  fi
+done
+if [[ -z "$PYTHON" ]]; then
+  echo "Error: python3 or python not found on PATH."
+  exit 1
+fi
+
 # Locate esptool — prefer running as a Python module to avoid missing-deps issues
 # with the standalone script in PlatformIO's bundled package.
 ESPTOOL_CMD=()
@@ -102,27 +114,15 @@ for pio_python in \
   fi
 done
 
-# Fall back to system Python
+# Fall back to system Python (PYTHON is always set at this point)
 if [[ ${#ESPTOOL_CMD[@]} -eq 0 ]]; then
-  if python -m esptool version &>/dev/null 2>&1; then
-    ESPTOOL_CMD=(python -m esptool)
+  if "$PYTHON" -m esptool version &>/dev/null 2>&1; then
+    ESPTOOL_CMD=("$PYTHON" -m esptool)
   else
     echo "esptool not found in PlatformIO or system Python — installing..."
-    python -m pip install esptool
-    ESPTOOL_CMD=(python -m esptool)
+    "$PYTHON" -m pip install esptool
+    ESPTOOL_CMD=("$PYTHON" -m esptool)
   fi
-fi
-
-# Locate python — prefer python3, fall back to python (Windows uses the latter)
-PYTHON=""
-for candidate in python3 python; do
-  if command -v "$candidate" &>/dev/null 2>&1; then
-    PYTHON="$candidate"; break
-  fi
-done
-if [[ -z "$PYTHON" ]]; then
-  echo "Error: python3 or python not found on PATH."
-  exit 1
 fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
