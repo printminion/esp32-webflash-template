@@ -2,40 +2,63 @@
 // ota.cpp — Over-the-air updates via ElegantOTA
 // Exposes /update endpoint on the device's web server
 // ============================================================
+#include "board_config.h"
+#ifdef FEATURE_OTA
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WebServer.h>
-#include <ElegantOTA.h>
 #include "logger.h"
 
-static WebServer server(80);
-
-// OTA endpoint credentials. Override via build_flags in platformio.ini:
+// OTA endpoint credentials — must be defined explicitly via build_flags:
 //   -D OTA_USERNAME='"youruser"' -D OTA_PASSWORD='"yourpass"'
-// Defaults ("esp32"/"esp32") are provided so the template builds out of the box.
-// Change these in project.json (and re-run generate_platformio.py) before deploying.
-#ifndef OTA_USERNAME
-  #define OTA_USERNAME "esp32"
+// No defaults are provided in any build type so OTA is always opt-in.
+// The endpoint is disabled (port 80 never opened) until both are set.
+
+// Endpoint is active only when credentials are available.
+#if defined(OTA_USERNAME) && defined(OTA_PASSWORD)
+  #define OTA_ENDPOINT_ACTIVE 1
+  // Guard against empty-string credentials (e.g. -D OTA_USERNAME='""'), which would
+  // activate the endpoint with no effective authentication.
+  static_assert(sizeof(OTA_USERNAME) > 1, "OTA_USERNAME must not be empty.");
+  static_assert(sizeof(OTA_PASSWORD) > 1, "OTA_PASSWORD must not be empty.");
+#else
+  #define OTA_ENDPOINT_ACTIVE 0
 #endif
-#ifndef OTA_PASSWORD
-  #define OTA_PASSWORD "esp32"
+
+// Warn at compile time when HTTP OTA is enabled in a release build: credentials
+// and firmware are sent unencrypted over the LAN.
+#if OTA_ENDPOINT_ACTIVE && defined(NDEBUG)
+  #pragma message("OTA: /update endpoint is active in a release build and serves over plain HTTP. " \
+                  "Credentials and firmware are not encrypted on the LAN.")
+#endif
+
+#if OTA_ENDPOINT_ACTIVE
+#include <WebServer.h>
+#include <ElegantOTA.h>
+static WebServer server(80);
 #endif
 
 void setupOTA() {
+#if OTA_ENDPOINT_ACTIVE
   server.on("/", []() {
     server.send(200, "text/plain",
       "Firmware: " FIRMWARE_VERSION "\nBoard: " BOARD_NAME "\n\nVisit /update for OTA.");
   });
-
   ElegantOTA.setAuth(OTA_USERNAME, OTA_PASSWORD);
   ElegantOTA.begin(&server);
   server.begin();
-
-  LOGF_STATUS("OTA: ready at http://%s/update", WiFi.localIP().toString().c_str());
+  LOG_STATUS("OTA: WARNING — /update runs over plain HTTP; credentials and firmware are not encrypted on the LAN.");
+  LOGF_STATUS("OTA: /update ready at http://%s/update", WiFi.localIP().toString().c_str());
+#else
+  LOG_STATUS("OTA: web server not started — set OTA_USERNAME and OTA_PASSWORD in build_flags to enable.");
+#endif
 }
 
 void otaLoop() {
+#if OTA_ENDPOINT_ACTIVE
   server.handleClient();
   ElegantOTA.loop();
+#endif
 }
+
+#endif // FEATURE_OTA
