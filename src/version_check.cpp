@@ -26,7 +26,9 @@
 // ── Configuration ─────────────────────────────────────────
 // VERSION_CHECK_URL must be set explicitly via build_flags or generate_platformio.py.
 // When unset the feature is disabled at runtime (no network call, no supply-chain risk).
-// Set in build_flags: -D VERSION_CHECK_URL='"https://your-domain/version.json"'
+// Set in build_flags: -D VERSION_CHECK_URL='"https://your-domain/version/<board-id>.json"'
+// Each per-board file contains: {"version":"v1.2.3","url":"https://.../firmware-<board>-v1.2.3.bin"}
+// Run scripts/generate_platformio.py to auto-populate this URL for each board.
 #ifndef VERSION_CHECK_URL
   #pragma message("VERSION_CHECK_URL not set — version checking disabled at runtime. " \
                   "Set in build_flags or re-run scripts/generate_platformio.py.")

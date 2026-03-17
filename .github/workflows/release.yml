@@ -65,12 +65,14 @@ jobs:
         run: pip install uv
 
       - name: Inject firmware version
+        env:
+          INJECT_VERSION: ${{ github.ref_name }}
         run: |
-          # Use Python for safe in-place replacement — avoids sed delimiter conflicts
-          # when VERSION contains '/', '&', or other sed-special characters.
+          # Pass the version via an env var so quotes/backslashes in the value
+          # never break the Python string literal or cause injection issues.
           python - <<'EOF'
-          import re, sys
-          version = "${{ github.ref_name }}"
+          import os, re
+          version = os.environ["INJECT_VERSION"]
           with open("platformio.ini", "r") as f:
               content = f.read()
           replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
@@ -93,23 +95,31 @@ jobs:
           WIFI_AP_ALLOW_OPEN: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
         run: |
           python3 - <<'EOF'
-          import os, sys
+          import os, sys, shlex, uuid
           pw = os.environ.get('WIFI_AP_PASSWORD_SECRET', '')
           allow_open = os.environ.get('WIFI_AP_ALLOW_OPEN', '')
           github_env = os.environ['GITHUB_ENV']
           if pw:
-              # Escape only backslashes and double-quotes for the C string literal.
-              # Avoids shell quoting (%q) which would alter the secret's actual bytes.
-              c_escaped = pw.replace('\\', '\\\\').replace('"', '\\"')
-              flag = "-D WIFI_AP_PASSWORD='\"" + c_escaped + "\"'"
-              with open(github_env, 'a') as f:
-                  f.write("PLATFORMIO_BUILD_FLAGS=" + flag + "\n")
+              # Escape backslashes and double-quotes for the C string literal.
+              # Also encode newlines/carriage-returns so the flag stays single-line.
+              c_escaped = (pw.replace('\\', '\\\\')
+                             .replace('"', '\\"')
+                             .replace('\n', '\\n')
+                             .replace('\r', '\\r'))
+              # Use shlex.quote on the C string literal so single-quotes in the
+              # password don't break PlatformIO's shlex-style flag parsing.
+              c_literal = '"' + c_escaped + '"'
+              flag = "-D WIFI_AP_PASSWORD=" + shlex.quote(c_literal)
           elif allow_open == '1':
-              with open(github_env, 'a') as f:
-                  f.write("PLATFORMIO_BUILD_FLAGS=-D WIFI_AP_OPEN=1\n")
+              flag = "-D WIFI_AP_OPEN=1"
           else:
               print("::error::Set the WIFI_AP_PASSWORD secret (recommended) or the WIFI_AP_ALLOW_OPEN_RELEASE variable to '1' before releasing.")
               sys.exit(1)
+          # Use GITHUB_ENV multiline syntax so any residual newlines in the value
+          # don't truncate or corrupt the env file.
+          pio_flags_delimiter = 'EOF_PIO_FLAGS_' + uuid.uuid4().hex
+          with open(github_env, 'a', encoding='utf-8') as f:
+              f.write(f"PLATFORMIO_BUILD_FLAGS<<{pio_flags_delimiter}\n{flag}\n{pio_flags_delimiter}\n")
           EOF
 
       - name: Build ${{ matrix.environment }}
@@ -183,7 +193,7 @@ jobs:
           PROJECT_NAME=$(jq -r '.project.name' project.json)
           # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled).
           # Derive base URL from installer.baseUrl in project.json so forks/custom domains work.
-          INSTALLER_BASE=$(jq -r '.installer.baseUrl' project.json)
+          INSTALLER_BASE=$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)
           PAGES_URL="${INSTALLER_BASE}/firmware/${VERSION}"
           # version.json: fetched by firmware via esp_https_ota — GitHub Releases URLs are fine
           RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
@@ -231,7 +241,7 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          PAGES_URL="$(jq -r '.installer.baseUrl' project.json)/"
+          PAGES_URL="$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)/"
           {
             echo "## ${PROJECT_NAME} ${VERSION}"
             echo ""
