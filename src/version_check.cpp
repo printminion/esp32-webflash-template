@@ -1,5 +1,5 @@
 // ============================================================
-// version_check.cpp — Automatic OTA version check
+// version_check.cpp — Automatic OTA version check (FEATURE_VERSION_CHECK)
 //
 // On demand, fetches version.json from GitHub Pages and compares
 // the remote version to the running firmware. If a newer version
@@ -8,6 +8,8 @@
 //
 // Called once from setup() after WiFi is connected.
 // ============================================================
+#include "board_config.h"
+#ifdef FEATURE_VERSION_CHECK
 
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
@@ -15,28 +17,49 @@
 #include <ArduinoJson.h>
 #include <esp_idf_version.h>
 #include <esp_https_ota.h>
-#include <esp_ota_ops.h>
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   #include <esp_crt_bundle.h>
 #endif
-#include "board_config.h"
 #include "logger.h"
 
 // ── Configuration ─────────────────────────────────────────
+// VERSION_CHECK_URL must be set explicitly via build_flags or generate_platformio.py.
+// When unset the feature is disabled at runtime (no network call, no supply-chain risk).
+// Set in build_flags: -D VERSION_CHECK_URL='"https://your-domain/version.json"'
 #ifndef VERSION_CHECK_URL
-  #define VERSION_CHECK_URL \
-    "https://printminion.github.io/esp32-webflash-template/version.json"
+  #pragma message("VERSION_CHECK_URL not set — version checking disabled at runtime. " \
+                  "Set in build_flags or re-run scripts/generate_platformio.py.")
+  #define VERSION_CHECK_URL ""
 #endif
 
 // TLS security for version check and OTA download.
 // VERSION_CHECK_INSECURE=0 (default): cert validation enabled.
 //   version.json fetch: uses built-in mbedTLS CA bundle on IDF 5.0+;
-//     falls back to insecure on older IDF where no accessible bundle exists.
+//     on older IDF, skips the check entirely (fails closed) — set
+//     VERSION_CHECK_INSECURE=1 to override.
 //   OTA download: uses built-in CA bundle on IDF 5.0+.
-// VERSION_CHECK_INSECURE=1: skips all TLS verification — never use in
-//   production (enables MITM/RCE). Set in build_flags for dev use only.
+// VERSION_CHECK_INSECURE=1 (dev only — never use in production):
+//   version.json fetch: WiFiClientSecure.setInsecure() — skips all TLS
+//     verification (cert chain + hostname).
+//   OTA download: sets skip_cert_common_name_check only (hostname/CN check
+//     disabled; no CA bundle is attached so chain validation also fails open
+//     on most configurations). Equivalent to disabling TLS for the download.
 #ifndef VERSION_CHECK_INSECURE
   #define VERSION_CHECK_INSECURE 0
+#endif
+#if VERSION_CHECK_INSECURE && defined(NDEBUG)
+  #error "VERSION_CHECK_INSECURE=1 must not be used in release builds (enables MITM/RCE). " \
+         "Remove it from build_flags or restrict it to debug environments."
+#endif
+
+// On IDF < 5.0 the mbedTLS CA bundle is not accessible via the Arduino API,
+// so secure version checks are skipped at runtime (fail-closed). Warn at
+// compile time so developers know this build will never auto-update unless
+// VERSION_CHECK_INSECURE=1 is explicitly set.
+#if !VERSION_CHECK_INSECURE && ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+  #pragma message("FEATURE_VERSION_CHECK: IDF < 5.0 detected without VERSION_CHECK_INSECURE=1 — " \
+                  "version checks will be skipped at runtime (no accessible CA bundle). " \
+                  "Set VERSION_CHECK_INSECURE=1 in build_flags or upgrade to IDF 5.")
 #endif
 
 // ── Helpers ───────────────────────────────────────────────
@@ -48,8 +71,12 @@ static uint32_t parseSemver(const char* s, bool* valid) {
   *valid = false;
   if (!s || !*s) return 0;
   if (*s == 'v') s++;               // strip leading 'v'
-  unsigned maj = 0, min = 0, pat = 0;
-  if (sscanf(s, "%u.%u.%u", &maj, &min, &pat) != 3) return 0;
+  // Use unsigned long to avoid UB when the version string component exceeds UINT_MAX.
+  // Range checks below reject values that overflow the packed uint32 bitfield.
+  unsigned long maj = 0, min = 0, pat = 0;
+  int consumed = 0;
+  if (sscanf(s, "%lu.%lu.%lu%n", &maj, &min, &pat, &consumed) != 3) return 0;
+  if (s[consumed] != '\0') return 0;  // reject suffixes: -rc1, +meta, etc.
   // Reject out-of-range components to prevent bitfield overflow:
   // major: 12-bit (0–4095), minor/patch: 10-bit each (0–1023).
   if (maj > 4095 || min > 1023 || pat > 1023) return 0;
@@ -60,6 +87,10 @@ static uint32_t parseSemver(const char* s, bool* valid) {
 // ── Public API ────────────────────────────────────────────
 
 void checkAndApplyUpdate() {
+  if (strlen(VERSION_CHECK_URL) == 0) {
+    LOG_STATUS("VersionCheck: VERSION_CHECK_URL not configured — skipping.");
+    return;
+  }
   LOG_STATUS("Checking for updates...");
   LOGF("VersionCheck: running firmware %s on %s", FIRMWARE_VERSION, BOARD_NAME);
 
@@ -74,7 +105,7 @@ void checkAndApplyUpdate() {
   extern const uint8_t x509_crt_bundle_start[] asm("_binary_x509_crt_bundle_start");
   extern const uint8_t x509_crt_bundle_end[]   asm("_binary_x509_crt_bundle_end");
   client.setCACertBundle(x509_crt_bundle_start,
-                         x509_crt_bundle_end - x509_crt_bundle_start);
+                         (size_t)(x509_crt_bundle_end - x509_crt_bundle_start));
 #else
   // IDF < 5.0: no accessible CA bundle via Arduino API. Fail closed rather than
   // silently skipping TLS verification. Set VERSION_CHECK_INSECURE=1 in
@@ -85,7 +116,10 @@ void checkAndApplyUpdate() {
 #endif
 
   HTTPClient http;
-  http.begin(client, VERSION_CHECK_URL);
+  if (!http.begin(client, VERSION_CHECK_URL)) {
+    LOG_STATUS("VersionCheck: HTTP client init failed — skipping");
+    return;
+  }
   http.setTimeout(8000);
   int code = http.GET();
 
@@ -95,8 +129,52 @@ void checkAndApplyUpdate() {
     return;
   }
 
-  String body = http.getString();
-  http.end();
+  int contentLength = http.getSize();
+  if (contentLength > 4096) {
+    LOGF_STATUS("VersionCheck: response too large (%d bytes) — skipping", contentLength);
+    http.end();
+    return;
+  }
+
+  // Static buffer: avoids consuming ~4KB of the 8KB loop task stack.
+  static char jsonBuf[4097];
+  int bytesRead = 0;
+
+  if (contentLength > 0) {
+    // Known Content-Length: read exactly N bytes (returns promptly after last byte).
+    bytesRead = http.getStream().readBytes(jsonBuf, contentLength);
+    jsonBuf[bytesRead] = '\0';
+    http.end();
+    if (bytesRead != contentLength) {
+      LOGF_STATUS("VersionCheck: partial read (%d/%d bytes) — skipping", bytesRead, contentLength);
+      return;
+    }
+  } else {
+    // Chunked/unknown size: read into the capped buffer incrementally using
+    // available() so we only read bytes that are already in the TCP buffer.
+    // This avoids both getString()'s unbounded heap allocation and readBytes()'
+    // blocking wait for stream timeout when the response is smaller than the cap.
+    Stream& stream = http.getStream();
+    unsigned long start = millis();
+    while (bytesRead < (int)(sizeof(jsonBuf) - 1)) {
+      if ((millis() - start) >= 8000) break;  // wrap-safe 8s timeout
+      int avail = stream.available();
+      if (avail > 0) {
+        int chunk = min(avail, (int)(sizeof(jsonBuf) - 1) - bytesRead);
+        bytesRead += stream.readBytes(jsonBuf + bytesRead, chunk);
+      } else if (!http.connected()) {
+        break;  // server closed connection — all data received
+      } else {
+        vTaskDelay(1);  // yield so the TCP/IP task can deliver the next chunk
+      }
+    }
+    jsonBuf[bytesRead] = '\0';
+    http.end();
+    if (bytesRead == (int)(sizeof(jsonBuf) - 1)) {
+      LOG_STATUS("VersionCheck: response too large — skipping");
+      return;
+    }
+  }
 
   // ── 2. Parse JSON ──────────────────────────────────────
   // Expected shape:
@@ -107,23 +185,48 @@ void checkAndApplyUpdate() {
   //     ...
   //   }
   // }
+
+  // Debug builds append " (debug)" to BOARD_NAME, but version.json uses the
+  // release name as the key. Strip the suffix so lookups succeed in both modes.
+  String boardKey = BOARD_NAME;
+  if (boardKey.endsWith(" (debug)")) boardKey.remove(boardKey.length() - 8);
+
+  // Use a filter so ArduinoJson only allocates nodes for the two fields we
+  // actually read. Both JsonDocument objects are still dynamically allocated
+  // (ArduinoJson v7 has no fixed-capacity API), but the filter limits allocation
+  // to the "version" string and a single firmware URL — bounded in practice.
+  JsonDocument filter;
+  filter["version"] = true;
+  filter["boards"][boardKey.c_str()] = true;
+
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, body);
+  DeserializationError err = deserializeJson(doc, jsonBuf,
+                                             DeserializationOption::Filter(filter));
   if (err) {
     LOGF_STATUS("VersionCheck: JSON parse error: %s", err.c_str());
     return;
   }
 
   const char* remoteVersion = doc["version"];
+  const char* firmwareUrl   = doc["boards"][boardKey.c_str()];
 
-  // Debug builds append " (debug)" to BOARD_NAME, but version.json uses the
-  // release name as the key. Strip the suffix so lookups succeed in both modes.
-  String boardKey = BOARD_NAME;
-  if (boardKey.endsWith(" (debug)")) boardKey.remove(boardKey.length() - 8);
-  const char* firmwareUrl = doc["boards"][boardKey.c_str()];
-
-  if (!remoteVersion || !firmwareUrl || firmwareUrl[0] == '\0') {
-    LOGF_STATUS("VersionCheck: missing fields in version.json (board key: %s)", boardKey.c_str());
+  if (!remoteVersion) {
+    LOG_STATUS("VersionCheck: missing version field in version.json — skipping");
+    return;
+  }
+  // Sanity-check field lengths before use (guards against malformed/malicious payloads).
+  if (strlen(remoteVersion) > 32) {
+    LOG_STATUS("VersionCheck: remote version string too long — skipping");
+    return;
+  }
+  if (!firmwareUrl || firmwareUrl[0] == '\0') {
+    // No URL for this board is a normal state (e.g. placeholder version.json
+    // before a release populates it). Log at debug level only.
+    LOGF("VersionCheck: no firmware URL for board '%s' — skipping", boardKey.c_str());
+    return;
+  }
+  if (strlen(firmwareUrl) > 512) {
+    LOG_STATUS("VersionCheck: firmware URL too long — skipping");
     return;
   }
 
@@ -150,6 +253,17 @@ void checkAndApplyUpdate() {
   // ── 4. Apply OTA update ───────────────────────────────
   LOGF_STATUS("Downloading update %s...", remoteVersion);
 
+  // Security note: integrity of the downloaded firmware depends on HTTPS TLS
+  // validation of the host serving version.json and the firmware binary.
+  // A future hardening step would add per-board SHA-256 hashes to version.json
+  // so the downloaded image can be verified before rebooting.
+
+  // Reject non-https URLs — firmwareUrl comes from JSON and must use TLS.
+  if (strncmp(firmwareUrl, "https://", 8) != 0) {
+    LOGF_STATUS("VersionCheck: firmware URL must start with https:// — aborting (%s)", firmwareUrl);
+    return;
+  }
+
   esp_http_client_config_t cfg = {};
   cfg.url            = firmwareUrl;
   cfg.transport_type = HTTP_TRANSPORT_OVER_SSL;
@@ -170,7 +284,7 @@ void checkAndApplyUpdate() {
   esp_https_ota_handle_t handle = NULL;
   esp_err_t ret = esp_https_ota_begin(&ota_cfg, &handle);
   if (ret != ESP_OK) {
-    LOGF_STATUS("VersionCheck: OTA begin failed (0x%x) — continuing with current firmware", ret);
+    LOGF_STATUS("VersionCheck: OTA begin failed (0x%x) — continuing with current firmware", (unsigned)ret);
     return;
   }
 
@@ -185,6 +299,8 @@ void checkAndApplyUpdate() {
         lastPct = pct;
       }
     }
+    // Yield to other tasks to prevent watchdog timeouts during long downloads.
+    vTaskDelay(1);
   }
 
   bool complete = esp_https_ota_is_complete_data_received(handle);
@@ -193,9 +309,9 @@ void checkAndApplyUpdate() {
   if (complete && finish_ret == ESP_OK) {
     LOG_STATUS("OTA complete — rebooting");
     delay(500);
-    esp_restart();
+    ESP.restart();
   } else {
-    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", finish_ret);
+    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", (unsigned)finish_ret);
   }
 #else
   // Legacy single-shot API (ESP-IDF < 4.1): no streaming progress.
@@ -203,9 +319,11 @@ void checkAndApplyUpdate() {
   if (ret == ESP_OK) {
     LOG_STATUS("OTA complete — rebooting");
     delay(500);
-    esp_restart();
+    ESP.restart();
   } else {
-    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", ret);
+    LOGF_STATUS("VersionCheck: OTA failed (0x%x) — continuing with current firmware", (unsigned)ret);
   }
 #endif
 }
+
+#endif // FEATURE_VERSION_CHECK
