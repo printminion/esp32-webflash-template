@@ -130,7 +130,7 @@ fi
 # as the output filename (mirrors what CI does via sed on platformio.ini).
 # Back up platformio.ini to a temp file and restore it on exit — using git checkout
 # would silently discard any uncommitted local edits the developer may have.
-PLATFORMIO_BACKUP=$(mktemp)
+PLATFORMIO_BACKUP=$(mktemp "${TMPDIR:-/tmp}/platformio.ini.XXXXXX")
 cp platformio.ini "$PLATFORMIO_BACKUP"
 trap 'cp "$PLATFORMIO_BACKUP" platformio.ini; rm -f "$PLATFORMIO_BACKUP"' EXIT
 
@@ -143,9 +143,10 @@ import re
 version = "${VERSION}"
 with open("platformio.ini", "r") as f:
     content = f.read()
+replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
 content = re.sub(
     r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
-    "-D FIRMWARE_VERSION='\"" + version + "\"'",
+    lambda _: replacement,
     content,
 )
 with open("platformio.ini", "w") as f:

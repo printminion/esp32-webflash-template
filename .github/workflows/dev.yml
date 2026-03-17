@@ -70,8 +70,43 @@ jobs:
 
       - name: Inject firmware version
         run: |
-          VERSION="${{ needs.setup.outputs.version }}"
-          sed -i "s/-D FIRMWARE_VERSION='\"dev\"'/-D FIRMWARE_VERSION='\"${VERSION}\"'/" platformio.ini
+          # Use Python for safe in-place replacement — avoids sed delimiter conflicts
+          # when VERSION contains '/', '&', or other sed-special characters.
+          python - <<'EOF'
+          import re
+          version = "${{ needs.setup.outputs.version }}"
+          with open("platformio.ini", "r") as f:
+              content = f.read()
+          replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
+          content = re.sub(
+              r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
+              lambda _: replacement,
+              content,
+          )
+          with open("platformio.ini", "w") as f:
+              f.write(content)
+          EOF
+
+      - name: Set WiFi AP build flags
+        # Use WIFI_AP_PASSWORD secret if configured; otherwise fall back to WIFI_AP_OPEN=1.
+        env:
+          WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
+        run: |
+          python3 - <<'EOF'
+          import os
+          pw = os.environ.get('WIFI_AP_PASSWORD_SECRET', '')
+          github_env = os.environ['GITHUB_ENV']
+          if pw:
+              # Escape only backslashes and double-quotes for the C string literal.
+              # Avoids shell quoting (%q) which would alter the secret's actual bytes.
+              c_escaped = pw.replace('\\', '\\\\').replace('"', '\\"')
+              flag = "-D WIFI_AP_PASSWORD='\"" + c_escaped + "\"'"
+              with open(github_env, 'a') as f:
+                  f.write("PLATFORMIO_BUILD_FLAGS=" + flag + "\n")
+          else:
+              with open(github_env, 'a') as f:
+                  f.write("PLATFORMIO_BUILD_FLAGS=-D WIFI_AP_OPEN=1\n")
+          EOF
 
       - name: Build ${{ matrix.environment }}
         run: pio run -e ${{ matrix.environment }}
@@ -80,7 +115,7 @@ jobs:
         run: |
           mkdir -p firmware
           VERSION="${{ needs.setup.outputs.version }}"
-          esptool.py --chip ${{ matrix.chip }} merge_bin \
+          python -m esptool --chip ${{ matrix.chip }} merge_bin \
             -o firmware/firmware-${{ matrix.environment }}-${VERSION}.bin \
             ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.environment }}/bootloader.bin \
             0x8000 .pio/build/${{ matrix.environment }}/partitions.bin \
@@ -120,7 +155,7 @@ jobs:
         run: |
           VERSION="${{ needs.setup.outputs.version }}"
           PROJECT_NAME=$(jq -r '.project.name' project.json)
-          BASE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/dev"
+          BASE_URL="$(jq -r '.installer.baseUrl' project.json)/dev"
           mkdir -p docs/dev
 
           BUILDS=$(jq -c --arg bu "$BASE_URL" --arg v "$VERSION" \
