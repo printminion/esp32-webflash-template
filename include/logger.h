@@ -14,17 +14,18 @@
 
 // Always-on: serial must be initialised first (LOG_BEGIN is always-on below)
 #define LOG_STATUS(msg)       Serial.println(msg)
-#define LOGF_STATUS(fmt, ...) Serial.printf(fmt "\n", ##__VA_ARGS__)
+// Newline is printed separately so fmt need not be a string literal.
+#define LOGF_STATUS(fmt, ...) do { Serial.printf(fmt, ##__VA_ARGS__); Serial.print('\n'); } while (0)
 
 // Serial initialisation — always runs so LOG_STATUS works in release builds
 #define LOG_BEGIN(baud) Serial.begin(baud)
 
 #ifdef DEBUG_BUILD
   #define LOG(msg)       Serial.println(msg)
-  #define LOGF(fmt, ...) Serial.printf(fmt "\n", ##__VA_ARGS__)
+  #define LOGF(fmt, ...) do { Serial.printf(fmt, ##__VA_ARGS__); Serial.print('\n'); } while (0)
   #define LOG_RAW(msg)   Serial.print(msg)
 #else
-  #define LOG(msg)
-  #define LOGF(fmt, ...)
-  #define LOG_RAW(msg)
+  #define LOG(msg)       do {} while (0)
+  #define LOGF(fmt, ...) do {} while (0)
+  #define LOG_RAW(msg)   do {} while (0)
 #endif
