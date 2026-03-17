@@ -37,13 +37,13 @@ There are no automated tests — validation is done via CI builds on GitHub Acti
 ## Architecture
 
 ### Board-specific configuration via include paths
-Each PlatformIO environment adds `-I boards/<board>` to its build flags. This means `#include "board_config.h"` in any source file resolves to the correct board's header at compile time — no runtime conditionals needed. Adding a new board requires: a new `boards/<board>/board_config.h`, a new `[env:<board>]` in `platformio.ini`, and new matrix entries in both workflow files.
+Each PlatformIO environment adds `-I boards/<board>` to its build flags. This means `#include "board_config.h"` in any source file resolves to the correct board's header at compile time — no runtime conditionals needed. Adding a new board requires: a new entry in `project.json` (source of truth), a new `boards/<board>/board_config.h`, and regenerating `platformio.ini` via `python scripts/generate_platformio.py`. Both CI workflows build their matrix dynamically from `project.json` — no workflow file edits needed.
 
 ### Feature flags
 `board_config.h` defines `FEATURE_WIFI_PROVISIONING`, `FEATURE_OTA`, and `FEATURE_VERSION_CHECK`. These gate entire subsystems in `main.cpp`. All currently-supported boards enable all three.
 
 ### Logging system
-`include/logger.h` provides `LOG()`, `LOGF()`, `LOG_RAW()` macros. In release builds (`NDEBUG`), they compile to nothing. In debug builds (`DEBUG_BUILD`), they emit via Serial. Never use `Serial.print` directly.
+`include/logger.h` provides `LOG()`, `LOGF()`, `LOG_RAW()` macros. When `DEBUG_BUILD` is not defined they compile to nothing; when `DEBUG_BUILD` is defined they emit via Serial. Never use `Serial.print` directly.
 
 ### OTA channels (release vs dev)
 - **Release channel**: triggered by `v*` tags → builds inject version from tag, firmware binaries attached to GitHub Release, `docs/manifest.json` and `docs/version.json` updated on `main` branch

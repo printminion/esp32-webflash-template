@@ -4,7 +4,7 @@
   "title": "ESP32 Project Configuration",
   "description": "Central configuration for project metadata and board definitions. Edit project.json to add/remove boards or rename the project.",
   "type": "object",
-  "required": ["project", "boards"],
+  "required": ["project", "installer", "boards"],
   "additionalProperties": false,
   "properties": {
     "project": {
