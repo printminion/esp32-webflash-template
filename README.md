@@ -10,7 +10,8 @@ A multi-board ESP32 firmware template with a browser-based web installer powered
 |---|---|
 | Seeed XIAO ESP32-C3 | `seeed_xiao_esp32c3` |
 | Seeed XIAO ESP32-S3 | `seeed_xiao_esp32s3` |
-| Generic ESP32 (DevKitC) | `generic_esp32` |
+| Seeed XIAO ESP32-C6 | `seeed_xiao_esp32c6` |
+| Generic ESP32 | `generic_esp32` |
 
 Each board has a matching `-debug` environment with verbose serial logging enabled.
 
@@ -25,6 +26,18 @@ Each board has a matching `-debug` environment with verbose serial logging enabl
 ## Building
 
 Install [PlatformIO](https://platformio.org/) then:
+
+> **WiFi provisioning AP policy** — release environments (`-D NDEBUG`) require an
+> explicit AP security setting. `platformio.ini` is auto-generated and must not be
+> edited by hand; pass the flag via `PLATFORMIO_BUILD_FLAGS` instead:
+> ```bash
+> # Password-protected captive portal (recommended)
+> PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"yourpassword\"'" pio run -e <env>
+>
+> # Open AP — development/testing only
+> PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e <env>
+> ```
+> Debug environments (no `-D NDEBUG`) allow an open AP by default — no flag required.
 
 ```bash
 # Build all release environments
@@ -53,9 +66,10 @@ esp32-webflash-template/
 │   └── ota.cpp           # OTA updates
 ├── include/
 │   └── logger.h          # Debug logging macros
-├── boards/               # Board-specific configs
+├── boards/               # Board-specific configs (one dir per board in project.json)
 │   ├── seeed_xiao_esp32c3/board_config.h
 │   ├── seeed_xiao_esp32s3/board_config.h
+│   ├── seeed_xiao_esp32c6/board_config.h
 │   └── generic_esp32/board_config.h
 ├── docs/                 # GitHub Pages web installer
 │   ├── index.html
