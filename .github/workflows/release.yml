@@ -70,20 +70,7 @@ jobs:
         run: |
           # Pass the version via an env var so quotes/backslashes in the value
           # never break the Python string literal or cause injection issues.
-          python - <<'EOF'
-          import os, re
-          version = os.environ["INJECT_VERSION"]
-          with open("platformio.ini", "r") as f:
-              content = f.read()
-          replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
-          content = re.sub(
-              r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
-              lambda _: replacement,
-              content,
-          )
-          with open("platformio.ini", "w") as f:
-              f.write(content)
-          EOF
+          python scripts/inject_version.py
 
       - name: Set WiFi AP build flags
         # WiFi AP policy for release builds (requires one of the following):
