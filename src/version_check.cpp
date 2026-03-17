@@ -1,9 +1,9 @@
 // ============================================================
 // version_check.cpp — Automatic OTA version check (FEATURE_VERSION_CHECK)
 //
-// On demand, fetches version.json from GitHub Pages and compares
-// the remote version to the running firmware. If a newer version
-// is available it downloads and applies the firmware via
+// On demand, fetches version/{board-id}.json from GitHub Pages and
+// compares the remote version to the running firmware. If a newer
+// version is available it downloads and applies the firmware via
 // esp_https_ota, then reboots.
 //
 // Called once from setup() after WiFi is connected.
@@ -186,27 +186,19 @@ void checkAndApplyUpdate() {
   }
 
   // ── 2. Parse JSON ──────────────────────────────────────
-  // Expected shape:
+  // Expected shape (per-board file at docs/version/{board-id}.json):
   // {
   //   "version": "v1.2.3",
-  //   "boards": {
-  //     "Seeed XIAO ESP32-C3": "https://.../firmware-seeed_xiao_esp32c3-v1.2.3.bin",
-  //     ...
-  //   }
+  //   "url": "https://.../firmware-seeed_xiao_esp32c3-v1.2.3.bin"
   // }
-
-  // Debug builds append " (debug)" to BOARD_NAME, but version.json uses the
-  // release name as the key. Strip the suffix so lookups succeed in both modes.
-  String boardKey = BOARD_NAME;
-  if (boardKey.endsWith(" (debug)")) boardKey.remove(boardKey.length() - 8);
 
   // Use a filter so ArduinoJson only allocates nodes for the two fields we
   // actually read. Both JsonDocument objects are still dynamically allocated
   // (ArduinoJson v7 has no fixed-capacity API), but the filter limits allocation
-  // to the "version" string and a single firmware URL — bounded in practice.
+  // to the "version" string and the firmware URL — bounded in practice.
   JsonDocument filter;
   filter["version"] = true;
-  filter["boards"][boardKey.c_str()] = true;
+  filter["url"]     = true;
 
   JsonDocument doc;
   DeserializationError err = deserializeJson(doc, jsonBuf,
@@ -217,7 +209,7 @@ void checkAndApplyUpdate() {
   }
 
   const char* remoteVersion = doc["version"];
-  const char* firmwareUrl   = doc["boards"][boardKey.c_str()];
+  const char* firmwareUrl   = doc["url"];
 
   if (!remoteVersion) {
     LOG_STATUS("VersionCheck: missing version field in version.json — skipping");
@@ -229,9 +221,9 @@ void checkAndApplyUpdate() {
     return;
   }
   if (!firmwareUrl || firmwareUrl[0] == '\0') {
-    // No URL for this board is a normal state (e.g. placeholder version.json
-    // before a release populates it). Log at debug level only.
-    LOGF("VersionCheck: no firmware URL for board '%s' — skipping", boardKey.c_str());
+    // Empty URL is a normal state (e.g. placeholder file before a release
+    // populates it). Log at debug level only.
+    LOG("VersionCheck: no firmware URL in version file — skipping");
     return;
   }
   if (strlen(firmwareUrl) > 512) {
