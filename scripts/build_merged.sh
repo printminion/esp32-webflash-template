@@ -141,16 +141,19 @@ echo "==> Injecting firmware version: ${VERSION}"
 # VERSION is passed via the environment (not interpolated into the script source)
 # so quotes or backslashes in the version string cannot break the Python code.
 VERSION="$VERSION" "$PYTHON" - <<'EOF'
-import os, re
+import os, re, sys
 version = os.environ["VERSION"]
 with open("platformio.ini", "r") as f:
     content = f.read()
 replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
-content = re.sub(
+content, count = re.subn(
     r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
     lambda _: replacement,
     content,
 )
+if count == 0:
+    print("error: FIRMWARE_VERSION build flag not found in platformio.ini", file=sys.stderr)
+    sys.exit(1)
 with open("platformio.ini", "w") as f:
     f.write(content)
 EOF

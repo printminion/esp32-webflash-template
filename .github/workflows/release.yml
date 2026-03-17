@@ -95,23 +95,31 @@ jobs:
           WIFI_AP_ALLOW_OPEN: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
         run: |
           python3 - <<'EOF'
-          import os, sys
+          import os, sys, shlex, uuid
           pw = os.environ.get('WIFI_AP_PASSWORD_SECRET', '')
           allow_open = os.environ.get('WIFI_AP_ALLOW_OPEN', '')
           github_env = os.environ['GITHUB_ENV']
           if pw:
-              # Escape only backslashes and double-quotes for the C string literal.
-              # Avoids shell quoting (%q) which would alter the secret's actual bytes.
-              c_escaped = pw.replace('\\', '\\\\').replace('"', '\\"')
-              flag = "-D WIFI_AP_PASSWORD='\"" + c_escaped + "\"'"
-              with open(github_env, 'a') as f:
-                  f.write("PLATFORMIO_BUILD_FLAGS=" + flag + "\n")
+              # Escape backslashes and double-quotes for the C string literal.
+              # Also encode newlines/carriage-returns so the flag stays single-line.
+              c_escaped = (pw.replace('\\', '\\\\')
+                             .replace('"', '\\"')
+                             .replace('\n', '\\n')
+                             .replace('\r', '\\r'))
+              # Use shlex.quote on the C string literal so single-quotes in the
+              # password don't break PlatformIO's shlex-style flag parsing.
+              c_literal = '"' + c_escaped + '"'
+              flag = "-D WIFI_AP_PASSWORD=" + shlex.quote(c_literal)
           elif allow_open == '1':
-              with open(github_env, 'a') as f:
-                  f.write("PLATFORMIO_BUILD_FLAGS=-D WIFI_AP_OPEN=1\n")
+              flag = "-D WIFI_AP_OPEN=1"
           else:
               print("::error::Set the WIFI_AP_PASSWORD secret (recommended) or the WIFI_AP_ALLOW_OPEN_RELEASE variable to '1' before releasing.")
               sys.exit(1)
+          # Use GITHUB_ENV multiline syntax so any residual newlines in the value
+          # don't truncate or corrupt the env file.
+          pio_flags_delimiter = 'EOF_PIO_FLAGS_' + uuid.uuid4().hex
+          with open(github_env, 'a') as f:
+              f.write(f"PLATFORMIO_BUILD_FLAGS<<{pio_flags_delimiter}\n{flag}\n{pio_flags_delimiter}\n")
           EOF
 
       - name: Build ${{ matrix.environment }}
