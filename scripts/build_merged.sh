@@ -137,10 +137,12 @@ trap 'cp "$PLATFORMIO_BACKUP" platformio.ini; rm -f "$PLATFORMIO_BACKUP"' EXIT
 echo ""
 echo "==> Injecting firmware version: ${VERSION}"
 # Use Python for safe in-place replacement — avoids sed GNU/BSD differences and
-# handles any characters in VERSION (e.g. '/', '&') without delimiter conflicts.
-"$PYTHON" - <<EOF
-import re
-version = "${VERSION}"
+# handles any characters in VERSION (e.g. '/', '&', '"', '\') without conflicts.
+# VERSION is passed via the environment (not interpolated into the script source)
+# so quotes or backslashes in the version string cannot break the Python code.
+VERSION="$VERSION" "$PYTHON" - <<'EOF'
+import os, re
+version = os.environ["VERSION"]
 with open("platformio.ini", "r") as f:
     content = f.read()
 replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
