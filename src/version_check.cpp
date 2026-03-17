@@ -141,6 +141,11 @@ void checkAndApplyUpdate() {
   }
 
   int contentLength = http.getSize();
+  if (contentLength == 0) {
+    LOG_STATUS("VersionCheck: empty response — skipping");
+    http.end();
+    return;
+  }
   if (contentLength > 4096) {
     LOGF_STATUS("VersionCheck: response too large (%d bytes) — skipping", contentLength);
     http.end();
@@ -161,7 +166,7 @@ void checkAndApplyUpdate() {
       return;
     }
   } else {
-    // Chunked/unknown size: read into the capped buffer incrementally using
+    // contentLength < 0: Chunked/unknown size: read into the capped buffer incrementally using
     // available() so we only read bytes that are already in the TCP buffer.
     // This avoids both getString()'s unbounded heap allocation and readBytes()'
     // blocking wait for stream timeout when the response is smaller than the cap.

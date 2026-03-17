@@ -76,11 +76,13 @@ jobs:
           with open("platformio.ini", "r") as f:
               content = f.read()
           replacement = "-D FIRMWARE_VERSION='\"" + version + "\"'"
-          content = re.sub(
+          content, count = re.subn(
               r"-D FIRMWARE_VERSION='\"[^\"]*\"'",
               lambda _: replacement,
               content,
           )
+          if count == 0:
+              raise RuntimeError("FIRMWARE_VERSION flag not found in platformio.ini — version injection failed")
           with open("platformio.ini", "w") as f:
               f.write(content)
           EOF
