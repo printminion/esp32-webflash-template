@@ -35,132 +35,16 @@ jobs:
 
   build:
     name: Build firmware
-    runs-on: ubuntu-latest
     needs: setup
-
-    strategy:
-      matrix:
-        include: ${{ fromJson(needs.setup.outputs.matrix) }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4.2.2
-
-      - name: Cache PlatformIO
-        uses: actions/cache@v4.2.0
-        with:
-          path: ~/.platformio
-          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v5.4.0
-        with:
-          python-version: '3.11'
-
-      - name: Install PlatformIO and esptool
-        run: pip install platformio esptool
-
-      - name: Pre-install uv (required by pioarduino platform for ESP32-C6)
-        if: matrix.requires_uv == true
-        run: pip install uv
-
-      - name: Inject firmware version
-        env:
-          INJECT_VERSION: ${{ github.ref_name }}
-        run: |
-          # Pass the version via an env var so quotes/backslashes in the value
-          # never break the Python string literal or cause injection issues.
-          python scripts/inject_version.py
-
-      - name: Set WiFi AP build flags
-        # WiFi AP policy for release builds (requires one of the following):
-        #   1. Set the WIFI_AP_PASSWORD repository secret → password-protected captive portal.
-        #   2. Set the WIFI_AP_ALLOW_OPEN_RELEASE repository variable to "1" → open AP (not for production).
-        # If neither is set the job fails so open-AP firmware is never published by accident.
-        env:
-          WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
-          WIFI_AP_ALLOW_OPEN: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
-        run: |
-          python3 - <<'EOF'
-          import os, sys, shlex, uuid
-          pw = os.environ.get('WIFI_AP_PASSWORD_SECRET', '')
-          allow_open = os.environ.get('WIFI_AP_ALLOW_OPEN', '')
-          github_env = os.environ['GITHUB_ENV']
-          repo = os.environ.get('GITHUB_REPOSITORY', '')
-          step_summary = os.environ.get('GITHUB_STEP_SUMMARY', '')
-          if pw:
-              # Escape backslashes and double-quotes for the C string literal.
-              # Also encode newlines/carriage-returns so the flag stays single-line.
-              c_escaped = (pw.replace('\\', '\\\\')
-                             .replace('"', '\\"')
-                             .replace('\n', '\\n')
-                             .replace('\r', '\\r'))
-              # Use shlex.quote on the C string literal so single-quotes in the
-              # password don't break PlatformIO's shlex-style flag parsing.
-              c_literal = '"' + c_escaped + '"'
-              flag = "-D WIFI_AP_PASSWORD=" + shlex.quote(c_literal)
-          elif allow_open == '1':
-              flag = "-D WIFI_AP_OPEN=1"
-          else:
-              settings_url = f"https://github.com/{repo}/settings/secrets/actions"
-              link = f"[Settings \u2192 Secrets and variables \u2192 Actions]({settings_url})"
-              lines = [
-                  "## \u274c Release blocked: WiFi AP policy not configured",
-                  "",
-                  "The release build requires an explicit WiFi AP security policy.",
-                  "Choose **one** of the following options, then re-run the workflow.",
-                  "",
-                  "### Option 1 \u2014 Password-protected AP (recommended)",
-                  "",
-                  f"1. Go to {link}",
-                  "2. Click **New repository secret**",
-                  "3. Name: `WIFI_AP_PASSWORD`",
-                  "4. Value: your chosen password (minimum 8 characters)",
-                  "5. Click **Add secret**, then re-run this workflow",
-                  "",
-                  "### Option 2 \u2014 Open AP (testing / demo only, not for production)",
-                  "",
-                  f"1. Go to {link}",
-                  "2. Click the **Variables** tab \u2192 **New repository variable**",
-                  "3. Name: `WIFI_AP_ALLOW_OPEN_RELEASE`",
-                  "4. Value: `1`",
-                  "5. Click **Add variable**, then re-run this workflow",
-                  "",
-              ]
-              summary = "\n".join(lines)
-              if step_summary:
-                  with open(step_summary, 'a', encoding='utf-8') as f:
-                      f.write(summary)
-              print("::error::WiFi AP policy not configured. See the job Summary tab for setup instructions.")
-              sys.exit(1)
-          # Use GITHUB_ENV multiline syntax so any residual newlines in the value
-          # don't truncate or corrupt the env file.
-          pio_flags_delimiter = 'EOF_PIO_FLAGS_' + uuid.uuid4().hex
-          with open(github_env, 'a', encoding='utf-8') as f:
-              f.write(f"PLATFORMIO_BUILD_FLAGS<<{pio_flags_delimiter}\n{flag}\n{pio_flags_delimiter}\n")
-          EOF
-
-      - name: Build ${{ matrix.environment }}
-        run: pio run -e ${{ matrix.environment }}
-
-      - name: Create merged firmware binary
-        run: |
-          # Merge bootloader + partition table + app into a single binary flashable at offset 0.
-          # This is required for ESP Web Tools — flashing only the app binary (offset 0x10000)
-          # at offset 0 overwrites the bootloader and causes a crash-loop on next boot.
-          mkdir -p firmware
-          python -m esptool --chip ${{ matrix.chip }} merge_bin \
-            -o firmware/firmware-${{ matrix.environment }}-${{ github.ref_name }}.bin \
-            ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.environment }}/bootloader.bin \
-            0x8000 .pio/build/${{ matrix.environment }}/partitions.bin \
-            0x10000 .pio/build/${{ matrix.environment }}/firmware.bin
-
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@v4.6.0
-        with:
-          name: firmware-${{ matrix.environment }}
-          path: firmware/*.bin
-          retention-days: 7
+    uses: ./.github/workflows/_build-firmware.yml
+    with:
+      matrix: ${{ needs.setup.outputs.matrix }}
+      version: ${{ github.ref_name }}
+      wifi_strict: true
+      wifi_allow_open_release: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
+      artifact_retention_days: 7
+    secrets:
+      WIFI_AP_PASSWORD: ${{ secrets.WIFI_AP_PASSWORD }}
 
   release:
     name: Create GitHub Release

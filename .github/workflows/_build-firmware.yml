@@ -1,0 +1,116 @@
+# ============================================================
+# _build-firmware.yml  (reusable workflow)
+# Called by release.yml and dev.yml to build all board
+# environments via a matrix fan-out.
+#
+# Inputs:
+#   matrix                  JSON array of board matrix entries (from setup job)
+#   version                 Firmware version string (tag or dev-SHA)
+#   wifi_strict             true = release policy (fail if AP not configured)
+#                           false = dev policy (open AP fallback)
+#   wifi_allow_open_release Value of vars.WIFI_AP_ALLOW_OPEN_RELEASE (release only)
+#   artifact_retention_days Days to keep uploaded artifacts
+# ============================================================
+
+name: Build firmware (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        description: 'JSON array of board matrix entries'
+        required: true
+        type: string
+      version:
+        description: 'Firmware version string injected into the binary'
+        required: true
+        type: string
+      wifi_strict:
+        description: 'true = release policy; false = dev policy (open AP fallback)'
+        required: true
+        type: boolean
+      wifi_allow_open_release:
+        description: 'Value of vars.WIFI_AP_ALLOW_OPEN_RELEASE (pass empty string for dev)'
+        required: false
+        type: string
+        default: ''
+      artifact_retention_days:
+        description: 'Days to retain uploaded firmware artifacts'
+        required: true
+        type: number
+    secrets:
+      WIFI_AP_PASSWORD:
+        required: false
+
+jobs:
+  build:
+    name: Build firmware (${{ matrix.environment }}, ${{ matrix.chip }}, ${{ matrix.bootloader_offset }}, ${{ matrix.requires_uv }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include: ${{ fromJson(inputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4.2.0
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.4.0
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO and esptool
+        run: pip install platformio esptool
+
+      - name: Pre-install uv (required by pioarduino platform for ESP32-C6)
+        if: matrix.requires_uv == true
+        run: pip install uv
+
+      - name: Inject firmware version
+        env:
+          INJECT_VERSION: ${{ inputs.version }}
+        run: |
+          # Pass the version via an env var so quotes/backslashes in the value
+          # never break the Python string literal or cause injection issues.
+          python scripts/inject_version.py
+
+      - name: Set WiFi AP build flags
+        # WiFi AP policy controlled by inputs.wifi_strict:
+        #   false (dev): falls back to open AP when WIFI_AP_PASSWORD is not set.
+        #   true (release): requires WIFI_AP_PASSWORD secret or
+        #                   wifi_allow_open_release == "1"; fails with setup
+        #                   instructions in the job Summary tab otherwise.
+        env:
+          WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
+          WIFI_STRICT: ${{ inputs.wifi_strict }}
+          WIFI_AP_ALLOW_OPEN: ${{ inputs.wifi_allow_open_release }}
+        run: python scripts/set_wifi_ap_flags.py
+
+      - name: Build ${{ matrix.environment }}
+        run: pio run -e ${{ matrix.environment }}
+
+      - name: Create merged firmware binary
+        run: |
+          # Merge bootloader + partition table + app into a single binary flashable at offset 0.
+          # This is required for ESP Web Tools — flashing only the app binary (offset 0x10000)
+          # at offset 0 overwrites the bootloader and causes a crash-loop on next boot.
+          mkdir -p firmware
+          python -m esptool --chip ${{ matrix.chip }} merge_bin \
+            -o firmware/firmware-${{ matrix.environment }}-${{ inputs.version }}.bin \
+            ${{ matrix.bootloader_offset }} .pio/build/${{ matrix.environment }}/bootloader.bin \
+            0x8000 .pio/build/${{ matrix.environment }}/partitions.bin \
+            0x10000 .pio/build/${{ matrix.environment }}/firmware.bin
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: firmware-${{ matrix.environment }}
+          path: firmware/*.bin
+          retention-days: ${{ inputs.artifact_retention_days }}
