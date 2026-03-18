@@ -79,31 +79,6 @@
       animation: fadeDown 0.6s ease both;
     }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      letter-spacing: 0.12em;
-      color: var(--accent);
-      background: rgba(0,212,255,0.08);
-      border: 1px solid rgba(0,212,255,0.25);
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      margin-bottom: 0.5rem;
-      text-transform: uppercase;
-    }
-
-    .badge::before {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse 2s infinite;
-    }
-
     h1 {
       font-size: clamp(1.4rem, 3vw, 1.9rem);
       font-weight: 700;
@@ -117,14 +92,6 @@
       margin-bottom: 0.4rem;
     }
 
-    .subtitle {
-      color: var(--muted);
-      font-size: 0.82rem;
-      font-weight: 300;
-      max-width: 420px;
-      margin: 0 auto;
-    }
-
     .card {
       width: 100%;
       max-width: 560px;
@@ -135,23 +102,6 @@
       animation: fadeUp 0.6s 0.15s ease both;
       box-shadow: 0 0 0 1px rgba(0,212,255,0.05), 0 24px 48px rgba(0,0,0,0.4);
     }
-
-    .card-header {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-    }
-
-    .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .dot-red    { background: #ef4444; }
-    .dot-yellow { background: #f59e0b; }
-    .dot-green  { background: #10b981; }
 
     .card-body { padding: 1.75rem 1.5rem; }
 
@@ -316,30 +266,6 @@
       font-family: var(--mono);
     }
 
-    .info-strip {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
-    }
-
-    .info-item { flex: 1; text-align: center; }
-
-    .info-val {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--accent);
-      margin-bottom: 0.15rem;
-    }
-
-    .info-key {
-      font-size: 0.7rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
     footer {
       margin-top: 2.5rem;
       text-align: center;
@@ -376,11 +302,6 @@
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
-    }
-
     /* ── Board search ──────────────────────────────────────── */
     .board-search-wrap {
       position: relative;
@@ -505,9 +426,7 @@
 <div class="wrap" id="app">
 
   <header>
-    <div class="badge" id="badge-text">Web Installer</div>
     <h1 id="page-h1">ESP32 Webflash Template</h1>
-    <p class="subtitle" id="page-subtitle">Select your board, connect via USB and flash directly from your browser — no software required.</p>
   </header>
 
   <div class="browser-warn">
@@ -515,13 +434,6 @@
   </div>
 
   <div class="card">
-    <div class="card-header">
-      <span class="dot dot-red"></span>
-      <span class="dot dot-yellow"></span>
-      <span class="dot dot-green"></span>
-      <span style="margin-left:0.5rem">flash-tool.sh</span>
-    </div>
-
     <div class="card-body">
 
       <div class="channel-toggle">
@@ -556,21 +468,6 @@
         <esp-web-install-button id="install-btn" style="display:none"></esp-web-install-button>
       </div>
 
-      <div class="info-strip">
-        <div class="info-item">
-          <div class="info-val" id="info-version">—</div>
-          <div class="info-key">Version</div>
-        </div>
-        <div class="info-item">
-          <div class="info-val" id="info-channel">release</div>
-          <div class="info-key">Channel</div>
-        </div>
-        <div class="info-item">
-          <div class="info-val" id="info-board">—</div>
-          <div class="info-key">Board</div>
-        </div>
-      </div>
-
     </div>
   </div>
 
@@ -587,7 +484,6 @@
 <script>
   const cfg  = window.PROJECT_CONFIG || {};
   const BASE = (cfg.baseUrl || 'https://printminion.github.io/esp32-webflash-template').replace(/\/+$/, '');
-  if (cfg.badgeText) document.getElementById('badge-text').textContent    = cfg.badgeText;
   if (cfg.h1) {
     const h1 = document.getElementById('page-h1');
     h1.innerHTML = '';
@@ -596,7 +492,6 @@
       if (i < arr.length - 1) h1.appendChild(document.createElement('br'));
     });
   }
-  if (cfg.subtitle)  document.getElementById('page-subtitle').textContent = cfg.subtitle;
   if (cfg.githubUrl) document.getElementById('github-link').href          = cfg.githubUrl;
 
   const STORAGE_KEY = 'webflash_last_board';
@@ -609,9 +504,9 @@
     document.getElementById('app').classList.add('no-serial');
   }
 
-  async function loadManifest() {
+  async function fetchManifestFor(ch) {
     const bust = `?cb=${Date.now()}`;
-    const url = channel === 'release'
+    const url = ch === 'release'
       ? `${BASE}/manifest.json${bust}`
       : `${BASE}/dev/manifest.json${bust}`;
     try {
@@ -619,15 +514,37 @@
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       if (!Array.isArray(data.builds) || !data.version) throw new Error('invalid manifest');
-      manifest = data;
-      document.getElementById('info-version').textContent = manifest.version || '—';
-      document.getElementById('info-channel').textContent = manifest.channel || channel;
+      const ver = /^\d/.test(data.version) ? `v${data.version}` : data.version;
+      const sha = data.sha || data.commit;
+      const label = sha ? `${ver} · ${sha.slice(0, 7)}` : ver;
+      document.getElementById(ch === 'release' ? 'btn-release' : 'btn-dev')
+        .dataset.version = label;
+      updateChannelLabels();
+      return data;
     } catch {
-      manifest = null;
-      document.getElementById('info-version').textContent = 'unavailable';
-      document.getElementById('info-channel').textContent = channel;
+      return null;
     }
+  }
+
+  async function loadManifest() {
+    manifest = await fetchManifestFor(channel);
     updateInstallButton();
+  }
+
+  async function loadAllManifests() {
+    const [rel, dev] = await Promise.all([
+      fetchManifestFor('release'),
+      fetchManifestFor('dev'),
+    ]);
+    manifest = channel === 'release' ? rel : dev;
+    updateInstallButton();
+  }
+
+  function updateChannelLabels() {
+    const relVer = document.getElementById('btn-release').dataset.version;
+    const devVer = document.getElementById('btn-dev').dataset.version;
+    document.getElementById('btn-release').textContent = relVer ? `⬟ Release · ${relVer}` : '⬟ Release';
+    document.getElementById('btn-dev').textContent     = devVer ? `⬡ Dev · ${devVer}`     : '⬡ Dev';
   }
 
   function setChannel(ch) {
@@ -739,8 +656,6 @@
     boardValue = radio.value;
     document.querySelectorAll('.board-option').forEach(el => el.classList.remove('selected'));
     radio.closest('.board-option').classList.add('selected');
-    const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
-    document.getElementById('info-board').textContent = board ? board.name : boardValue;
     try { localStorage.setItem(STORAGE_KEY, boardValue); } catch { /* private mode */ }
     updateInstallButton();
   }
@@ -760,8 +675,6 @@
       renderBoards();
       const radio = document.querySelector(`input[name="board"][value="${saved}"]`);
       if (radio) radio.checked = true;
-      const infoBoard = document.getElementById('info-board');
-      if (infoBoard) infoBoard.textContent = board.name;
       updateInstallButton();
     } catch { /* localStorage unavailable */ }
   }
@@ -803,7 +716,7 @@
   renderBoards();
   initBoardSearch();
   restoreLastBoard();
-  loadManifest();
+  loadAllManifests();
 
   if (window.BRANDING_CONFIG?.length) {
     const brandingEl = document.getElementById('branding-links');
