@@ -234,6 +234,18 @@
 
     .flash-wrap { margin-top: 0.25rem; }
 
+    .troubleshoot-hint {
+      margin-top: 0.6rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .troubleshoot-hint a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .troubleshoot-hint a:hover { text-decoration: underline; }
+
     esp-web-install-button { display: block; width: 100%; }
 
     esp-web-install-button::part(button) {
@@ -436,13 +448,14 @@
   <div class="card">
     <div class="card-body">
 
+      <div class="field-label">1. Select channel</div>
       <div class="channel-toggle">
         <button class="channel-btn active" id="btn-release" onclick="setChannel('release')" aria-pressed="true">⬟ Release</button>
         <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
       </div>
 
       <div class="field-label-row">
-        <div class="field-label">Select board</div>
+        <div class="field-label">2. Select board</div>
         <span class="board-count-badge" id="board-count"></span>
       </div>
 
@@ -463,9 +476,13 @@
         Try a different search term.
       </div>
 
+      <div class="field-label" style="margin-top:1rem">3. Connect USB &amp; flash</div>
       <div class="flash-wrap">
         <div class="no-board-hint" id="no-board-hint">↑ Pick a board to continue</div>
         <esp-web-install-button id="install-btn" style="display:none"></esp-web-install-button>
+        <div class="troubleshoot-hint">
+          Device not detected? <a id="troubleshoot-link" href="https://github.com/printminion/esp32-webflash-template/wiki/Troubleshooting" target="_blank" rel="noopener noreferrer">Troubleshooting guide →</a>
+        </div>
       </div>
 
     </div>
@@ -492,7 +509,10 @@
       if (i < arr.length - 1) h1.appendChild(document.createElement('br'));
     });
   }
-  if (cfg.githubUrl) document.getElementById('github-link').href          = cfg.githubUrl;
+  if (cfg.githubUrl) {
+    document.getElementById('github-link').href = cfg.githubUrl;
+    document.getElementById('troubleshoot-link').href = `${cfg.githubUrl}/wiki/Troubleshooting`;
+  }
 
   const STORAGE_KEY = 'webflash_last_board';
 
