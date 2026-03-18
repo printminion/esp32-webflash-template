@@ -15,7 +15,7 @@ window.BRANDING_CONFIG = [
 
 window.PROJECT_CONFIG = {
   title:              "ESP32 Web Flasher",
-  h1:                 "ESP32 Webflash<br>Template",
+  h1:                 "ESP32 Webflash Template",
   subtitle:           "Select your board, connect via USB and flash directly from your browser — no software required.",
   baseUrl:            "https://printminion.github.io/esp32-webflash-template",
   githubUrl:          "https://github.com/printminion/esp32-webflash-template",
