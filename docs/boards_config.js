@@ -8,7 +8,7 @@ window.BOARDS_CONFIG = [
 ];
 
 window.BRANDING_CONFIG = [
-  { icon: "🐦", label: "Follow on X/Twitter", url: "https://x.com/printminion" },
+  { icon: "🐦", label: "@printminion", url: "https://x.com/printminion" },
   { icon: "🖨️", label: "3D Enclosures on Cults3D", url: "https://cults3d.com/@printminion" },
   { icon: "☕", label: "Buy Me a Coffee", url: "https://buymeacoffee.com/printminion" }
 ];
