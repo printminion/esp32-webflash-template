@@ -86,6 +86,8 @@ jobs:
           pw = os.environ.get('WIFI_AP_PASSWORD_SECRET', '')
           allow_open = os.environ.get('WIFI_AP_ALLOW_OPEN', '')
           github_env = os.environ['GITHUB_ENV']
+          repo = os.environ.get('GITHUB_REPOSITORY', '')
+          step_summary = os.environ.get('GITHUB_STEP_SUMMARY', '')
           if pw:
               # Escape backslashes and double-quotes for the C string literal.
               # Also encode newlines/carriage-returns so the flag stays single-line.
@@ -100,7 +102,36 @@ jobs:
           elif allow_open == '1':
               flag = "-D WIFI_AP_OPEN=1"
           else:
-              print("::error::Set the WIFI_AP_PASSWORD secret (recommended) or the WIFI_AP_ALLOW_OPEN_RELEASE variable to '1' before releasing.")
+              settings_url = f"https://github.com/{repo}/settings/secrets/actions"
+              link = f"[Settings \u2192 Secrets and variables \u2192 Actions]({settings_url})"
+              lines = [
+                  "## \u274c Release blocked: WiFi AP policy not configured",
+                  "",
+                  "The release build requires an explicit WiFi AP security policy.",
+                  "Choose **one** of the following options, then re-run the workflow.",
+                  "",
+                  "### Option 1 \u2014 Password-protected AP (recommended)",
+                  "",
+                  f"1. Go to {link}",
+                  "2. Click **New repository secret**",
+                  "3. Name: `WIFI_AP_PASSWORD`",
+                  "4. Value: your chosen password (minimum 8 characters)",
+                  "5. Click **Add secret**, then re-run this workflow",
+                  "",
+                  "### Option 2 \u2014 Open AP (testing / demo only, not for production)",
+                  "",
+                  f"1. Go to {link}",
+                  "2. Click the **Variables** tab \u2192 **New repository variable**",
+                  "3. Name: `WIFI_AP_ALLOW_OPEN_RELEASE`",
+                  "4. Value: `1`",
+                  "5. Click **Add variable**, then re-run this workflow",
+                  "",
+              ]
+              summary = "\n".join(lines)
+              if step_summary:
+                  with open(step_summary, 'a', encoding='utf-8') as f:
+                      f.write(summary)
+              print("::error::WiFi AP policy not configured. See the job Summary tab for setup instructions.")
               sys.exit(1)
           # Use GITHUB_ENV multiline syntax so any residual newlines in the value
           # don't truncate or corrupt the env file.
