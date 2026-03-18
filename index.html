@@ -11,8 +11,6 @@
     src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js?module"
     integrity="sha384-2Ea4WL8tjFb0qQKUqBoX45KlPVoUgL+Z3zUqsD0MHmtJ3faDbfNyZulLg/LfYDUZ"
     crossorigin="anonymous"></script>
-  <script src="boards_config.js"></script>
-  <script>if (window.PROJECT_CONFIG) document.title = window.PROJECT_CONFIG.title;</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -536,6 +534,15 @@
 
 </div>
 <script>
+(async () => {
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'boards_config.js?cb=' + Date.now();
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  if (window.PROJECT_CONFIG) document.title = window.PROJECT_CONFIG.title;
+
   const cfg  = window.PROJECT_CONFIG || {};
   const BASE = (cfg.baseUrl || 'https://printminion.github.io/esp32-webflash-template').replace(/\/+$/, '');
   if (cfg.h1) {
@@ -808,6 +815,7 @@
       brandingEl.appendChild(a);
     });
   }
+})();
 </script>
 </body>
 </html>
