@@ -464,7 +464,7 @@
       </div>
 
       <div class="flash-wrap">
-        <div class="no-board-hint" id="no-board-hint">← Pick a board to continue</div>
+        <div class="no-board-hint" id="no-board-hint">↑ Pick a board to continue</div>
         <esp-web-install-button id="install-btn" style="display:none"></esp-web-install-button>
       </div>
 
@@ -687,7 +687,7 @@
       if (btn._blobUrl) { URL.revokeObjectURL(btn._blobUrl); btn._blobUrl = null; }
       hint.textContent   = boardValue && !manifest
         ? 'Firmware manifest unavailable — check connection and refresh.'
-        : '← Pick a board to continue';
+        : '↑ Pick a board to continue';
       hint.style.display = 'block';
       btn.style.display  = 'none';
       return;
