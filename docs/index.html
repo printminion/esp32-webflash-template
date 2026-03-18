@@ -379,6 +379,125 @@
       0%, 100% { opacity: 1; }
       50%       { opacity: 0.3; }
     }
+
+    /* ── Board search ──────────────────────────────────────── */
+    .board-search-wrap {
+      position: relative;
+      margin-bottom: 0.75rem;
+    }
+    .board-search {
+      width: 100%;
+      padding: 0.6rem 0.9rem 0.6rem 2.4rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .board-search::placeholder { color: var(--muted); }
+    .board-search:focus {
+      border-color: rgba(0,212,255,0.4);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+    }
+    .board-search-wrap::before {
+      content: '⌕';
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    /* ── Field label row with count badge ─────────────────── */
+    .field-label-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .field-label-row .field-label { margin-bottom: 0; }
+    .board-count-badge {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2);
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    /* ── Chip-family group sections ───────────────────────── */
+    .board-group { margin-bottom: 0.5rem; }
+    .board-group[open] { margin-bottom: 0.75rem; }
+    .board-group-summary {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 7px;
+      background: rgba(124,58,237,0.07);
+      border: 1px solid rgba(124,58,237,0.18);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+    .board-group-summary::-webkit-details-marker { display: none; }
+    .board-group-summary::after {
+      content: '›';
+      margin-left: auto;
+      transition: transform 0.2s;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+    .board-group[open] .board-group-summary::after { transform: rotate(90deg); }
+    .board-group-summary:hover {
+      border-color: rgba(124,58,237,0.35);
+      color: var(--text);
+    }
+    .group-count {
+      background: rgba(124,58,237,0.18);
+      border-radius: 999px;
+      padding: 0 0.4rem;
+      font-size: 0.62rem;
+      color: #a78bfa;
+    }
+    .board-group-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-top: 0.5rem;
+      padding-left: 0.5rem;
+    }
+
+    /* ── No-results message ───────────────────────────────── */
+    .no-results-msg {
+      display: none;
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+    .no-results-msg strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
@@ -409,8 +528,27 @@
         <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
       </div>
 
-      <div class="field-label">Select board</div>
+      <div class="field-label-row">
+        <div class="field-label">Select board</div>
+        <span class="board-count-badge" id="board-count"></span>
+      </div>
+
+      <div class="board-search-wrap">
+        <input
+          class="board-search"
+          id="board-search"
+          type="search"
+          placeholder="Search boards…"
+          autocomplete="off"
+          aria-label="Search boards"
+        />
+      </div>
+
       <div class="board-list" id="board-list"></div>
+      <div class="no-results-msg" id="no-results-msg">
+        <strong>No boards found</strong>
+        Try a different search term.
+      </div>
 
       <div class="flash-wrap">
         <div class="no-board-hint" id="no-board-hint">← Pick a board to continue</div>
@@ -460,6 +598,8 @@
   if (cfg.subtitle)  document.getElementById('page-subtitle').textContent = cfg.subtitle;
   if (cfg.githubUrl) document.getElementById('github-link').href          = cfg.githubUrl;
 
+  const STORAGE_KEY = 'webflash_last_board';
+
   let channel    = 'release';
   let boardValue = null;
   let manifest   = null;
@@ -498,46 +638,99 @@
     loadManifest();
   }
 
-  function renderBoards() {
-    const list = document.getElementById('board-list');
-    list.innerHTML = '';
+  function renderBoards(filter) {
+    const list  = document.getElementById('board-list');
+    const noRes = document.getElementById('no-results-msg');
+    const badge = document.getElementById('board-count');
+    const term  = (filter || '').trim().toLowerCase();
+
     if (!Array.isArray(window.BOARDS_CONFIG) || window.BOARDS_CONFIG.length === 0) {
-      const err = document.createElement('div');
-      err.className = 'no-board-hint';
-      err.textContent = 'Board configuration failed to load. Please refresh the page.';
-      list.appendChild(err);
+      list.innerHTML = '<div class="no-board-hint">Board configuration failed to load. Please refresh the page.</div>';
       return;
     }
-    window.BOARDS_CONFIG.forEach(b => {
-      const label = document.createElement('label');
-      label.className = 'board-option';
-      label.id = `opt-${b.id}`;
 
-      const input = document.createElement('input');
-      input.type = 'radio'; input.name = 'board'; input.value = b.id;
-      input.addEventListener('change', () => selectBoard(input));
+    // Snapshot open groups to preserve collapse state across re-renders
+    const openGroups = new Set(
+      [...list.querySelectorAll('details[data-family][open]')].map(d => d.dataset.family)
+    );
 
-      const iconDiv = document.createElement('div');
-      iconDiv.className = 'board-icon';
-      iconDiv.textContent = b.icon;
+    const filtered = term
+      ? window.BOARDS_CONFIG.filter(b =>
+          b.name.toLowerCase().includes(term) ||
+          b.meta.toLowerCase().includes(term) ||
+          (b.chipFamily || '').toLowerCase().includes(term)
+        )
+      : window.BOARDS_CONFIG;
 
-      const nameDiv = document.createElement('div');
-      nameDiv.className = 'board-name';
-      nameDiv.textContent = b.name;
+    if (badge) badge.textContent = `${filtered.length} board${filtered.length !== 1 ? 's' : ''}`;
 
-      const metaDiv = document.createElement('div');
-      metaDiv.className = 'board-meta';
-      metaDiv.textContent = b.meta;
+    list.innerHTML = '';
+    if (filtered.length === 0) {
+      if (noRes) noRes.style.display = 'block';
+      return;
+    }
+    if (noRes) noRes.style.display = 'none';
 
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'board-info';
-      infoDiv.append(nameDiv, metaDiv);
+    // Group by chipFamily, preserving BOARDS_CONFIG insertion order
+    const groups = new Map();
+    filtered.forEach(b => {
+      const fam = b.chipFamily || 'Other';
+      if (!groups.has(fam)) groups.set(fam, []);
+      groups.get(fam).push(b);
+    });
 
-      const checkDiv = document.createElement('div');
-      checkDiv.className = 'board-check';
+    const singleGroup = groups.size === 1;
 
-      label.append(input, iconDiv, infoDiv, checkDiv);
-      list.appendChild(label);
+    groups.forEach((boards, family) => {
+      const details = document.createElement('details');
+      details.className = 'board-group';
+      details.dataset.family = family;
+      if (singleGroup || openGroups.has(family) || !term) details.open = true;
+
+      const summary = document.createElement('summary');
+      summary.className = 'board-group-summary';
+      summary.innerHTML = `${family} <span class="group-count">${boards.length}</span>`;
+      details.appendChild(summary);
+
+      const body = document.createElement('div');
+      body.className = 'board-group-body';
+
+      boards.forEach(b => {
+        const label = document.createElement('label');
+        label.className = 'board-option';
+        label.id = `opt-${b.id}`;
+        if (b.id === boardValue) label.classList.add('selected');
+
+        const input = document.createElement('input');
+        input.type = 'radio'; input.name = 'board'; input.value = b.id;
+        if (b.id === boardValue) input.checked = true;
+        input.addEventListener('change', () => selectBoard(input));
+
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'board-icon';
+        iconDiv.textContent = b.icon;
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'board-name';
+        nameDiv.textContent = b.name;
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'board-meta';
+        metaDiv.textContent = b.meta;
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'board-info';
+        infoDiv.append(nameDiv, metaDiv);
+
+        const checkDiv = document.createElement('div');
+        checkDiv.className = 'board-check';
+
+        label.append(input, iconDiv, infoDiv, checkDiv);
+        body.appendChild(label);
+      });
+
+      details.appendChild(body);
+      list.appendChild(details);
     });
   }
 
@@ -547,7 +740,29 @@
     radio.closest('.board-option').classList.add('selected');
     const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
     document.getElementById('info-board').textContent = board ? board.name : boardValue;
+    try { localStorage.setItem(STORAGE_KEY, boardValue); } catch { /* private mode */ }
     updateInstallButton();
+  }
+
+  function initBoardSearch() {
+    const input = document.getElementById('board-search');
+    if (input) input.addEventListener('input', () => renderBoards(input.value));
+  }
+
+  function restoreLastBoard() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      const board = window.BOARDS_CONFIG?.find(b => b.id === saved);
+      if (!board) return;
+      boardValue = saved;
+      renderBoards();
+      const radio = document.querySelector(`input[name="board"][value="${saved}"]`);
+      if (radio) radio.checked = true;
+      const infoBoard = document.getElementById('info-board');
+      if (infoBoard) infoBoard.textContent = board.name;
+      updateInstallButton();
+    } catch { /* localStorage unavailable */ }
   }
 
   function updateInstallButton() {
@@ -585,6 +800,8 @@
   }
 
   renderBoards();
+  initBoardSearch();
+  restoreLastBoard();
   loadManifest();
 
   if (window.BRANDING_CONFIG?.length) {
