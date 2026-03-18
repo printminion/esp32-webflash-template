@@ -23,6 +23,47 @@ Each board has a matching `-debug` environment with verbose serial logging enabl
 - **Debug / release builds** — `LOG()` macros compile out completely in release builds
 - **Web installer** — flash directly from your browser at the [installer page](https://printminion.github.io/esp32-webflash-template/)
 
+## Setting up your fork
+
+After forking, complete these steps before pushing your first release tag.
+
+### 1. Customize `project.json`
+
+Update these fields to match your fork:
+
+- `project.name` and `installer.title` — your project name
+- `installer.baseUrl` — `https://<your-username>.github.io/<your-repo>`
+- `installer.githubUrl` — your fork URL
+
+### 2. Enable GitHub Pages
+
+Repo → **Settings → Pages → Source: GitHub Actions**
+
+The release workflow deploys the web installer there automatically.
+
+### 3. Configure the WiFi AP policy
+
+Required before pushing a release tag. Choose one option in
+**Settings → Secrets and variables → Actions**:
+
+- **Secret** `WIFI_AP_PASSWORD` (recommended) — add a password of at least 8 characters
+  to ship a password-protected captive portal.
+- **Variable** `WIFI_AP_ALLOW_OPEN_RELEASE` = `1` — opt in to an open AP
+  (testing / demo only, not for production).
+
+> Dev branch builds always succeed — they default to open AP if no secret is set.
+> Release builds fail immediately if neither option is configured.
+
+### 4. Push a version tag to trigger your first release
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The release workflow builds all boards, creates a GitHub Release with firmware
+binaries attached, and deploys the web installer to GitHub Pages.
+
 ## Building
 
 Install [PlatformIO](https://platformio.org/) then:
