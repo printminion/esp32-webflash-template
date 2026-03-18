@@ -306,6 +306,14 @@
     }
     .theme-toggle:hover { color: var(--text); border-color: var(--accent); }
 
+    .branding-links {
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .branding-links a { color: var(--muted); text-decoration: none; }
+    .branding-links a:hover { color: var(--accent); }
+
     footer {
       margin-top: 2.5rem;
       text-align: center;
@@ -468,6 +476,7 @@
 
   <header>
     <h1 id="page-h1">ESP32 Webflash Template</h1>
+    <p id="branding-links" class="branding-links"></p>
   </header>
 
   <div class="browser-warn">
@@ -523,7 +532,6 @@
       <a id="github-link" href="https://github.com/printminion/esp32-webflash-template" target="_blank" rel="noopener noreferrer">GitHub</a> ·
       Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank" rel="noopener noreferrer">ESP Web Tools</a>
     </p>
-    <p id="branding-links" style="margin-top:0.4rem"></p>
   </footer>
 
 </div>
