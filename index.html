@@ -654,12 +654,12 @@
       [...list.querySelectorAll('details[data-family][open]')].map(d => d.dataset.family)
     );
 
-    const filtered = term
-      ? window.BOARDS_CONFIG.filter(b =>
-          b.name.toLowerCase().includes(term) ||
-          b.meta.toLowerCase().includes(term) ||
-          (b.chipFamily || '').toLowerCase().includes(term)
-        )
+    const terms = term.split(/\s+/).filter(Boolean);
+    const filtered = terms.length
+      ? window.BOARDS_CONFIG.filter(b => {
+          const hay = `${b.name} ${b.meta} ${b.chipFamily || ''}`.toLowerCase();
+          return terms.every(t => hay.includes(t));
+        })
       : window.BOARDS_CONFIG;
 
     if (badge) badge.textContent = `${filtered.length} board${filtered.length !== 1 ? 's' : ''}`;
