@@ -405,8 +405,8 @@
     <div class="card-body">
 
       <div class="channel-toggle">
-        <button class="channel-btn active" id="btn-release" onclick="setChannel('release')">⬟ Release</button>
-        <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')">⬡ Dev</button>
+        <button class="channel-btn active" id="btn-release" onclick="setChannel('release')" aria-pressed="true">⬟ Release</button>
+        <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
       </div>
 
       <div class="field-label">Select board</div>
@@ -447,7 +447,7 @@
 </div>
 <script>
   const cfg  = window.PROJECT_CONFIG || {};
-  const BASE = cfg.baseUrl || 'https://printminion.github.io/esp32-webflash-template';
+  const BASE = (cfg.baseUrl || 'https://printminion.github.io/esp32-webflash-template').replace(/\/+$/, '');
   if (cfg.badgeText) document.getElementById('badge-text').textContent    = cfg.badgeText;
   if (cfg.h1) {
     const h1 = document.getElementById('page-h1');
@@ -484,6 +484,7 @@
     } catch {
       manifest = null;
       document.getElementById('info-version').textContent = 'unavailable';
+      document.getElementById('info-channel').textContent = channel;
     }
     updateInstallButton();
   }
@@ -491,7 +492,9 @@
   function setChannel(ch) {
     channel = ch;
     document.getElementById('btn-release').classList.toggle('active', ch === 'release');
+    document.getElementById('btn-release').setAttribute('aria-pressed', String(ch === 'release'));
     document.getElementById('btn-dev').classList.toggle('active', ch === 'dev');
+    document.getElementById('btn-dev').setAttribute('aria-pressed', String(ch === 'dev'));
     loadManifest();
   }
 
@@ -543,7 +546,7 @@
     document.querySelectorAll('.board-option').forEach(el => el.classList.remove('selected'));
     radio.closest('.board-option').classList.add('selected');
     const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
-    document.getElementById('info-board').textContent = board ? board.name.replace('Seeed XIAO ', 'XIAO ') : boardValue;
+    document.getElementById('info-board').textContent = board ? board.name : boardValue;
     updateInstallButton();
   }
 
