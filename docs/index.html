@@ -611,7 +611,7 @@
     document.getElementById('btn-dev').textContent     = devVer ? `⬡ Dev · ${devVer}`     : '⬡ Dev';
   }
 
-  function setChannel(ch) {
+  window.setChannel = function setChannel(ch) {
     channel = ch;
     document.getElementById('btn-release').classList.toggle('active', ch === 'release');
     document.getElementById('btn-release').setAttribute('aria-pressed', String(ch === 'release'));
