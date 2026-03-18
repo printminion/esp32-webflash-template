@@ -7,7 +7,7 @@
 #include <Arduino.h>
 #include <WiFiManager.h>
 #include <WiFi.h>
-#include <esp_efuse.h>
+#include <esp_mac.h>
 #include "logger.h"
 
 // Provisioning AP security policy:
@@ -49,11 +49,11 @@ void setupWifi() {
 
   // AP name shown to user during provisioning — includes firmware version for flash validation.
   // Use all 6 MAC bytes to guarantee uniqueness across devices.
-  // esp_efuse_mac_get_default fills mac[0..5] in standard OUI-first (MSB-first) byte order.
-  uint8_t macBytes[6] = {};  // zero-initialize so suffix is deterministic if efuse read fails
-  esp_err_t macErr = esp_efuse_mac_get_default(macBytes);
+  // esp_read_mac fills mac[0..5] in standard OUI-first (MSB-first) byte order.
+  uint8_t macBytes[6] = {};  // zero-initialize so suffix is deterministic if read fails
+  esp_err_t macErr = esp_read_mac(macBytes, ESP_MAC_WIFI_STA);
   if (macErr != ESP_OK) {
-    LOGF_STATUS("WiFi: esp_efuse_mac_get_default failed (0x%x) — MAC suffix will be 000000000000", (unsigned)macErr);
+    LOGF_STATUS("WiFi: esp_read_mac failed (0x%x) — MAC suffix will be 000000000000", (unsigned)macErr);
   }
   char macSuffix[13];
   snprintf(macSuffix, sizeof(macSuffix), "%02x%02x%02x%02x%02x%02x",
