@@ -258,23 +258,33 @@
 
     esp-web-install-button { display: block; width: 100%; }
 
-    esp-web-install-button::part(button) {
+    .flash-btn {
+      display: block;
       width: 100%;
-      padding: 0.875rem 1.5rem;
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      box-sizing: border-box;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       color: #fff;
       font-family: var(--sans);
-      font-size: 0.95rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 24px rgba(0,212,255,0.25), 0 1px 4px rgba(0,0,0,0.2);
+      transition: box-shadow 0.2s, transform 0.15s, filter 0.2s;
     }
-
-    esp-web-install-button::part(button):hover  { opacity: 0.9; }
-    esp-web-install-button::part(button):active { transform: scale(0.99); }
+    .flash-btn:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 32px rgba(0,212,255,0.4), 0 2px 8px rgba(0,0,0,0.2);
+      transform: translateY(-1px);
+    }
+    .flash-btn:active {
+      transform: translateY(0) scale(0.98);
+      filter: brightness(0.95);
+    }
 
     .no-board-hint {
       width: 100%;
@@ -515,7 +525,9 @@
       <div class="field-label" style="margin-top:1rem">3. Connect USB &amp; flash</div>
       <div class="flash-wrap">
         <div class="no-board-hint" id="no-board-hint">↑ Pick a board to continue</div>
-        <esp-web-install-button id="install-btn" style="display:none"></esp-web-install-button>
+        <esp-web-install-button id="install-btn" style="display:none">
+          <button slot="activate" class="flash-btn">⚡ Connect &amp; Flash</button>
+        </esp-web-install-button>
         <div class="troubleshoot-hint">
           Device not detected? <a id="troubleshoot-link" href="https://github.com/printminion/esp32-webflash-template/wiki/Troubleshooting" target="_blank" rel="noopener noreferrer">Troubleshooting guide →</a>
         </div>
