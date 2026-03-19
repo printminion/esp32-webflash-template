@@ -275,7 +275,7 @@ void checkAndApplyUpdate() {
   esp_http_client_config_t cfg = {};
   cfg.url            = firmwareUrl;
   cfg.transport_type = HTTP_TRANSPORT_OVER_SSL;
-  cfg.buffer_size    = 2048;  // GitHub CDN headers exceed the 512-byte default
+  cfg.buffer_size    = 4096;  // GitHub CDN headers can exceed 2048 bytes (set-cookie, security headers)
 #if VERSION_CHECK_INSECURE
   cfg.skip_cert_common_name_check = true;
 #else
