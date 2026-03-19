@@ -41,6 +41,10 @@ on:
     secrets:
       WIFI_AP_PASSWORD:
         required: false
+      OTA_USERNAME:
+        required: false
+      OTA_PASSWORD:
+        required: false
 
 jobs:
   build:
@@ -91,6 +95,9 @@ jobs:
           WIFI_AP_PASSWORD_SECRET: ${{ secrets.WIFI_AP_PASSWORD }}
           WIFI_STRICT: ${{ inputs.wifi_strict }}
           WIFI_AP_ALLOW_OPEN: ${{ inputs.wifi_allow_open_release }}
+          OTA_USERNAME_SECRET: ${{ secrets.OTA_USERNAME }}
+          OTA_PASSWORD_SECRET: ${{ secrets.OTA_PASSWORD }}
+          BOARD_ID: ${{ matrix.environment }}
         run: python scripts/set_wifi_ap_flags.py
 
       - name: Build ${{ matrix.environment }}

@@ -64,6 +64,70 @@ git push origin v1.0.0
 The release workflow builds all boards, creates a GitHub Release with firmware
 binaries attached, and deploys the web installer to GitHub Pages.
 
+## Runtime Configuration
+
+After flashing, the serial monitor may show these informational messages. Both features are **opt-in** — they do nothing until you configure them.
+
+### OTA web server (`OTA_USERNAME` / `OTA_PASSWORD`)
+
+```
+OTA: web server not started — set OTA_USERNAME and OTA_PASSWORD in build_flags to enable.
+```
+
+**What it is:** A browser-based firmware upload endpoint at `http://<device-ip>/update`, powered by [ElegantOTA](https://github.com/ayushsharma82/ElegantOTA). Useful for updating firmware over WiFi without USB.
+
+**Why it's off by default:** The endpoint requires credentials to activate. Shipping a device with a reachable `/update` endpoint and no password would allow anyone on the LAN to replace the firmware.
+
+**How to enable:**
+
+**Via GitHub Actions (recommended for forks):** Add `OTA_USERNAME` and `OTA_PASSWORD` as repository secrets in **Settings → Secrets and variables → Actions**. The build workflow injects them automatically — no `platformio.ini` edits needed.
+
+**Manually (local builds):**
+
+```ini
+# platformio.ini (or PLATFORMIO_BUILD_FLAGS env var)
+build_flags =
+  -D OTA_USERNAME='"admin"'
+  -D OTA_PASSWORD='"yourpassword"'
+```
+
+> ⚠️ OTA traffic is plain HTTP (unencrypted on the LAN). Use a strong password and enable only on trusted networks.
+
+---
+
+### Auto-update check (`VERSION_CHECK_URL`)
+
+```
+VersionCheck: VERSION_CHECK_URL not configured — skipping.
+```
+
+**What it is:** On boot, the device fetches a small JSON file from your GitHub Pages and compares the remote version to the running firmware. If a newer release exists it downloads and applies it automatically via `esp_https_ota`, then reboots.
+
+**Why it's off by default:** The feature requires a URL pointing to your specific deployment. Running it without configuration would either silently fail or, worse, check a URL it shouldn't.
+
+**How to enable:**
+
+**Via GitHub Actions (automatic):** Once `installer.baseUrl` is set in `project.json`, the build workflow computes and injects the correct per-board URL automatically — no secrets or manual edits needed.
+
+**For local builds**, the URL is auto-populated per board by `scripts/generate_platformio.py`. After customising `project.json`, run:
+
+```bash
+python scripts/generate_platformio.py
+```
+
+This writes the correct `VERSION_CHECK_URL` for each board into `platformio.ini`. The URL points to `docs/version/<board-id>.json`, which the release workflow populates with the latest version and firmware download link.
+
+To set it manually:
+
+```ini
+build_flags =
+  -D VERSION_CHECK_URL='"https://<your-username>.github.io/<your-repo>/version/<board-id>.json"'
+```
+
+> Note: Auto-update only applies when running a release build (`vX.Y.Z` version tag). Dev builds (`dev-<sha>`) skip the update check intentionally.
+
+---
+
 ## Building
 
 Install [PlatformIO](https://platformio.org/) then:

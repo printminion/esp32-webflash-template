@@ -45,6 +45,8 @@ jobs:
       artifact_retention_days: 7
     secrets:
       WIFI_AP_PASSWORD: ${{ secrets.WIFI_AP_PASSWORD }}
+      OTA_USERNAME: ${{ secrets.OTA_USERNAME }}
+      OTA_PASSWORD: ${{ secrets.OTA_PASSWORD }}
 
   release:
     name: Create GitHub Release
