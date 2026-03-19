@@ -36,12 +36,13 @@ def main() -> None:
         comma = "," if i < len(boards) - 1 else ""
         # Use json.dumps for correct JS string literal escaping (handles
         # backslashes, newlines, Unicode, etc. — not just double quotes).
-        bid   = js(board["id"])
-        name  = js(board["name"])
-        icon  = js(board["icon"])
-        meta  = js(board["meta"])
+        bid        = js(board["id"])
+        name       = js(board["name"])
+        icon       = js(board["icon"])
+        meta       = js(board["meta"])
+        chipFamily = js(board["chipFamily"])
         lines.append(
-            f'  {{ id: {bid}, name: {name}, icon: {icon}, meta: {meta} }}{comma}'
+            f'  {{ id: {bid}, name: {name}, icon: {icon}, meta: {meta}, chipFamily: {chipFamily} }}{comma}'
         )
 
     lines.append("];")

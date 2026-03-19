@@ -49,6 +49,8 @@ jobs:
       artifact_retention_days: 3
     secrets:
       WIFI_AP_PASSWORD: ${{ secrets.WIFI_AP_PASSWORD }}
+      OTA_USERNAME: ${{ secrets.OTA_USERNAME }}
+      OTA_PASSWORD: ${{ secrets.OTA_PASSWORD }}
 
   deploy:
     name: Deploy dev channel

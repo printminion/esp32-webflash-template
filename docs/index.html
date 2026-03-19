@@ -11,8 +11,6 @@
     src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js?module"
     integrity="sha384-2Ea4WL8tjFb0qQKUqBoX45KlPVoUgL+Z3zUqsD0MHmtJ3faDbfNyZulLg/LfYDUZ"
     crossorigin="anonymous"></script>
-  <script src="boards_config.js"></script>
-  <script>if (window.PROJECT_CONFIG) document.title = window.PROJECT_CONFIG.title;</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
@@ -26,10 +24,20 @@
       --accent2:   #7c3aed;
       --success:   #10b981;
       --warning:   #f59e0b;
-      --text:      #e2e8f0;
-      --muted:     #64748b;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
       --mono:      'Share Tech Mono', monospace;
       --sans:      'Outfit', sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg:      #f0f4f8;
+      --surface: #ffffff;
+      --border:  #cbd5e1;
+      --accent:  #0284c7;
+      --accent2: #7c3aed;
+      --text:    #0f172a;
+      --muted:   #64748b;
     }
 
     html, body {
@@ -61,7 +69,9 @@
       background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 70%);
       pointer-events: none;
       z-index: 0;
+      transition: opacity 0.3s;
     }
+    html[data-theme="light"] body::after { opacity: 0; }
 
     .wrap {
       position: relative;
@@ -70,58 +80,26 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 3rem 1.5rem 4rem;
+      padding: 1.5rem 1.5rem 3rem;
     }
 
     header {
       text-align: center;
-      margin-bottom: 3.5rem;
+      margin-bottom: 1.5rem;
       animation: fadeDown 0.6s ease both;
     }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      letter-spacing: 0.12em;
-      color: var(--accent);
-      background: rgba(0,212,255,0.08);
-      border: 1px solid rgba(0,212,255,0.25);
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      margin-bottom: 1.25rem;
-      text-transform: uppercase;
-    }
-
-    .badge::before {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse 2s infinite;
-    }
-
     h1 {
-      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-size: clamp(1.4rem, 3vw, 1.9rem);
       font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      white-space: nowrap;
+      background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 0.75rem;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: 1rem;
-      font-weight: 300;
-      max-width: 420px;
-      margin: 0 auto;
+      margin-bottom: 0.4rem;
     }
 
     .card {
@@ -132,25 +110,8 @@
       border-radius: 16px;
       overflow: hidden;
       animation: fadeUp 0.6s 0.15s ease both;
-      box-shadow: 0 0 0 1px rgba(0,212,255,0.05), 0 24px 48px rgba(0,0,0,0.4);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12);
     }
-
-    .card-header {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-    }
-
-    .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .dot-red    { background: #ef4444; }
-    .dot-yellow { background: #f59e0b; }
-    .dot-green  { background: #10b981; }
 
     .card-body { padding: 1.75rem 1.5rem; }
 
@@ -158,7 +119,7 @@
       display: flex;
       gap: 0.5rem;
       margin-bottom: 1.75rem;
-      background: rgba(255,255,255,0.03);
+      background: rgba(0,0,0,0.03);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 4px;
@@ -283,30 +244,52 @@
 
     .flash-wrap { margin-top: 0.25rem; }
 
+    .troubleshoot-hint {
+      margin-top: 0.6rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .troubleshoot-hint a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .troubleshoot-hint a:hover { text-decoration: underline; }
+
     esp-web-install-button { display: block; width: 100%; }
 
-    esp-web-install-button::part(button) {
+    .flash-btn {
+      display: block;
       width: 100%;
-      padding: 0.875rem 1.5rem;
-      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      box-sizing: border-box;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       color: #fff;
       font-family: var(--sans);
-      font-size: 0.95rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 24px rgba(0,212,255,0.25), 0 1px 4px rgba(0,0,0,0.2);
+      transition: box-shadow 0.2s, transform 0.15s, filter 0.2s;
     }
-
-    esp-web-install-button::part(button):hover  { opacity: 0.9; }
-    esp-web-install-button::part(button):active { transform: scale(0.99); }
+    .flash-btn:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 32px rgba(0,212,255,0.4), 0 2px 8px rgba(0,0,0,0.2);
+      transform: translateY(-1px);
+    }
+    .flash-btn:active {
+      transform: translateY(0) scale(0.98);
+      filter: brightness(0.95);
+    }
 
     .no-board-hint {
       width: 100%;
       padding: 0.875rem;
-      background: rgba(255,255,255,0.03);
+      background: rgba(0,0,0,0.03);
       border: 1px dashed var(--border);
       border-radius: 10px;
       color: var(--muted);
@@ -315,29 +298,29 @@
       font-family: var(--mono);
     }
 
-    .info-strip {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
-    }
-
-    .info-item { flex: 1; text-align: center; }
-
-    .info-val {
-      font-family: var(--mono);
+    .theme-toggle {
+      position: fixed;
+      top: 0.75rem;
+      right: 0.75rem;
+      z-index: 10;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.3rem 0.6rem;
       font-size: 0.8rem;
-      color: var(--accent);
-      margin-bottom: 0.15rem;
-    }
-
-    .info-key {
-      font-size: 0.7rem;
+      cursor: pointer;
       color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      transition: color 0.2s, border-color 0.2s;
     }
+    .theme-toggle:hover { color: var(--text); border-color: var(--accent); }
+
+    .branding-links {
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .branding-links a { color: var(--muted); text-decoration: none; }
+    .branding-links a:hover { color: var(--accent); }
 
     footer {
       margin-top: 2.5rem;
@@ -375,19 +358,133 @@
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
+    /* ── Board search ──────────────────────────────────────── */
+    .board-search-wrap {
+      position: relative;
+      margin-bottom: 0.75rem;
+    }
+    .board-search {
+      width: 100%;
+      padding: 0.6rem 0.9rem 0.6rem 2.4rem;
+      background: rgba(0,0,0,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .board-search::placeholder { color: var(--muted); }
+    .board-search:focus {
+      border-color: rgba(0,212,255,0.4);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+    }
+    .board-search-wrap::before {
+      content: '⌕';
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    /* ── Field label row with count badge ─────────────────── */
+    .field-label-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .field-label-row .field-label { margin-bottom: 0; }
+    .board-count-badge {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2);
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    /* ── Chip-family group sections ───────────────────────── */
+    .board-group { margin-bottom: 0.5rem; }
+    .board-group[open] { margin-bottom: 0.75rem; }
+    .board-group-summary {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 7px;
+      background: rgba(124,58,237,0.07);
+      border: 1px solid rgba(124,58,237,0.18);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+    .board-group-summary::-webkit-details-marker { display: none; }
+    .board-group-summary::after {
+      content: '›';
+      margin-left: auto;
+      transition: transform 0.2s;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+    .board-group[open] .board-group-summary::after { transform: rotate(90deg); }
+    .board-group-summary:hover {
+      border-color: rgba(124,58,237,0.35);
+      color: var(--text);
+    }
+    .group-count {
+      background: rgba(124,58,237,0.18);
+      border-radius: 999px;
+      padding: 0 0.4rem;
+      font-size: 0.62rem;
+      color: #a78bfa;
+    }
+    .board-group-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-top: 0.5rem;
+      padding-left: 0.5rem;
+    }
+
+    /* ── No-results message ───────────────────────────────── */
+    .no-results-msg {
+      display: none;
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+    .no-results-msg strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme">☀️</button>
 <div class="wrap" id="app">
 
   <header>
-    <div class="badge" id="badge-text">Web Installer</div>
-    <h1 id="page-h1">ESP32 Webflash<br>Template</h1>
-    <p class="subtitle" id="page-subtitle">Select your board, connect via USB and flash directly from your browser — no software required.</p>
+    <h1 id="page-h1">ESP32 Webflash Template</h1>
+    <p id="branding-links" class="branding-links"></p>
   </header>
 
   <div class="browser-warn">
@@ -395,40 +492,44 @@
   </div>
 
   <div class="card">
-    <div class="card-header">
-      <span class="dot dot-red"></span>
-      <span class="dot dot-yellow"></span>
-      <span class="dot dot-green"></span>
-      <span style="margin-left:0.5rem">flash-tool.sh</span>
-    </div>
-
     <div class="card-body">
 
+      <div class="field-label">1. Select channel</div>
       <div class="channel-toggle">
         <button class="channel-btn active" id="btn-release" onclick="setChannel('release')" aria-pressed="true">⬟ Release</button>
         <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
       </div>
 
-      <div class="field-label">Select board</div>
-      <div class="board-list" id="board-list"></div>
-
-      <div class="flash-wrap">
-        <div class="no-board-hint" id="no-board-hint">← Pick a board to continue</div>
-        <esp-web-install-button id="install-btn" style="display:none"></esp-web-install-button>
+      <div class="field-label-row">
+        <div class="field-label">2. Select board</div>
+        <span class="board-count-badge" id="board-count"></span>
       </div>
 
-      <div class="info-strip">
-        <div class="info-item">
-          <div class="info-val" id="info-version">—</div>
-          <div class="info-key">Version</div>
-        </div>
-        <div class="info-item">
-          <div class="info-val" id="info-channel">release</div>
-          <div class="info-key">Channel</div>
-        </div>
-        <div class="info-item">
-          <div class="info-val" id="info-board">—</div>
-          <div class="info-key">Board</div>
+      <div class="board-search-wrap">
+        <input
+          class="board-search"
+          id="board-search"
+          type="search"
+          placeholder="Search boards…"
+          autocomplete="off"
+          aria-label="Search boards"
+        />
+      </div>
+
+      <div class="board-list" id="board-list"></div>
+      <div class="no-results-msg" id="no-results-msg">
+        <strong>No boards found</strong>
+        Try a different search term.
+      </div>
+
+      <div class="field-label" style="margin-top:1rem">3. Connect USB &amp; flash</div>
+      <div class="flash-wrap">
+        <div class="no-board-hint" id="no-board-hint">↑ Pick a board to continue</div>
+        <esp-web-install-button id="install-btn" style="display:none">
+          <button slot="activate" class="flash-btn">⚡ Connect &amp; Flash</button>
+        </esp-web-install-button>
+        <div class="troubleshoot-hint">
+          Device not detected? <a id="troubleshoot-link" href="https://github.com/printminion/esp32-webflash-template/wiki/Troubleshooting" target="_blank" rel="noopener noreferrer">Troubleshooting guide →</a>
         </div>
       </div>
 
@@ -441,14 +542,21 @@
       <a id="github-link" href="https://github.com/printminion/esp32-webflash-template" target="_blank" rel="noopener noreferrer">GitHub</a> ·
       Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank" rel="noopener noreferrer">ESP Web Tools</a>
     </p>
-    <p id="branding-links" style="margin-top:0.4rem"></p>
   </footer>
 
 </div>
 <script>
+(async () => {
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'boards_config.js?cb=' + Date.now();
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  if (window.PROJECT_CONFIG) document.title = window.PROJECT_CONFIG.title;
+
   const cfg  = window.PROJECT_CONFIG || {};
   const BASE = (cfg.baseUrl || 'https://printminion.github.io/esp32-webflash-template').replace(/\/+$/, '');
-  if (cfg.badgeText) document.getElementById('badge-text').textContent    = cfg.badgeText;
   if (cfg.h1) {
     const h1 = document.getElementById('page-h1');
     h1.innerHTML = '';
@@ -457,8 +565,12 @@
       if (i < arr.length - 1) h1.appendChild(document.createElement('br'));
     });
   }
-  if (cfg.subtitle)  document.getElementById('page-subtitle').textContent = cfg.subtitle;
-  if (cfg.githubUrl) document.getElementById('github-link').href          = cfg.githubUrl;
+  if (cfg.githubUrl) {
+    document.getElementById('github-link').href = cfg.githubUrl;
+    document.getElementById('troubleshoot-link').href = `${cfg.githubUrl}/wiki/Troubleshooting`;
+  }
+
+  const STORAGE_KEY = 'webflash_last_board';
 
   let channel    = 'release';
   let boardValue = null;
@@ -468,9 +580,9 @@
     document.getElementById('app').classList.add('no-serial');
   }
 
-  async function loadManifest() {
+  async function fetchManifestFor(ch) {
     const bust = `?cb=${Date.now()}`;
-    const url = channel === 'release'
+    const url = ch === 'release'
       ? `${BASE}/manifest.json${bust}`
       : `${BASE}/dev/manifest.json${bust}`;
     try {
@@ -478,18 +590,40 @@
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       if (!Array.isArray(data.builds) || !data.version) throw new Error('invalid manifest');
-      manifest = data;
-      document.getElementById('info-version').textContent = manifest.version || '—';
-      document.getElementById('info-channel').textContent = manifest.channel || channel;
+      const ver = /^\d/.test(data.version) ? `v${data.version}` : data.version;
+      const sha = data.sha || data.commit;
+      const label = sha ? `${ver} · ${sha.slice(0, 7)}` : ver;
+      document.getElementById(ch === 'release' ? 'btn-release' : 'btn-dev')
+        .dataset.version = label;
+      updateChannelLabels();
+      return data;
     } catch {
-      manifest = null;
-      document.getElementById('info-version').textContent = 'unavailable';
-      document.getElementById('info-channel').textContent = channel;
+      return null;
     }
+  }
+
+  async function loadManifest() {
+    manifest = await fetchManifestFor(channel);
     updateInstallButton();
   }
 
-  function setChannel(ch) {
+  async function loadAllManifests() {
+    const [rel, dev] = await Promise.all([
+      fetchManifestFor('release'),
+      fetchManifestFor('dev'),
+    ]);
+    manifest = channel === 'release' ? rel : dev;
+    updateInstallButton();
+  }
+
+  function updateChannelLabels() {
+    const relVer = document.getElementById('btn-release').dataset.version;
+    const devVer = document.getElementById('btn-dev').dataset.version;
+    document.getElementById('btn-release').textContent = relVer ? `⬟ Release · ${relVer}` : '⬟ Release';
+    document.getElementById('btn-dev').textContent     = devVer ? `⬡ Dev · ${devVer}`     : '⬡ Dev';
+  }
+
+  window.setChannel = function setChannel(ch) {
     channel = ch;
     document.getElementById('btn-release').classList.toggle('active', ch === 'release');
     document.getElementById('btn-release').setAttribute('aria-pressed', String(ch === 'release'));
@@ -498,46 +632,99 @@
     loadManifest();
   }
 
-  function renderBoards() {
-    const list = document.getElementById('board-list');
-    list.innerHTML = '';
+  function renderBoards(filter) {
+    const list  = document.getElementById('board-list');
+    const noRes = document.getElementById('no-results-msg');
+    const badge = document.getElementById('board-count');
+    const term  = (filter || '').trim().toLowerCase();
+
     if (!Array.isArray(window.BOARDS_CONFIG) || window.BOARDS_CONFIG.length === 0) {
-      const err = document.createElement('div');
-      err.className = 'no-board-hint';
-      err.textContent = 'Board configuration failed to load. Please refresh the page.';
-      list.appendChild(err);
+      list.innerHTML = '<div class="no-board-hint">Board configuration failed to load. Please refresh the page.</div>';
       return;
     }
-    window.BOARDS_CONFIG.forEach(b => {
-      const label = document.createElement('label');
-      label.className = 'board-option';
-      label.id = `opt-${b.id}`;
 
-      const input = document.createElement('input');
-      input.type = 'radio'; input.name = 'board'; input.value = b.id;
-      input.addEventListener('change', () => selectBoard(input));
+    // Snapshot open groups to preserve collapse state across re-renders
+    const openGroups = new Set(
+      [...list.querySelectorAll('details[data-family][open]')].map(d => d.dataset.family)
+    );
 
-      const iconDiv = document.createElement('div');
-      iconDiv.className = 'board-icon';
-      iconDiv.textContent = b.icon;
+    const terms = term.split(/\s+/).filter(Boolean);
+    const filtered = terms.length
+      ? window.BOARDS_CONFIG.filter(b => {
+          const hay = `${b.name} ${b.meta} ${b.chipFamily || ''}`.toLowerCase();
+          return terms.every(t => hay.includes(t));
+        })
+      : window.BOARDS_CONFIG;
 
-      const nameDiv = document.createElement('div');
-      nameDiv.className = 'board-name';
-      nameDiv.textContent = b.name;
+    if (badge) badge.textContent = `${filtered.length} board${filtered.length !== 1 ? 's' : ''}`;
 
-      const metaDiv = document.createElement('div');
-      metaDiv.className = 'board-meta';
-      metaDiv.textContent = b.meta;
+    list.innerHTML = '';
+    if (filtered.length === 0) {
+      if (noRes) noRes.style.display = 'block';
+      return;
+    }
+    if (noRes) noRes.style.display = 'none';
 
-      const infoDiv = document.createElement('div');
-      infoDiv.className = 'board-info';
-      infoDiv.append(nameDiv, metaDiv);
+    // Group by chipFamily, preserving BOARDS_CONFIG insertion order
+    const groups = new Map();
+    filtered.forEach(b => {
+      const fam = b.chipFamily || 'Other';
+      if (!groups.has(fam)) groups.set(fam, []);
+      groups.get(fam).push(b);
+    });
 
-      const checkDiv = document.createElement('div');
-      checkDiv.className = 'board-check';
+    const singleGroup = groups.size === 1;
 
-      label.append(input, iconDiv, infoDiv, checkDiv);
-      list.appendChild(label);
+    groups.forEach((boards, family) => {
+      const details = document.createElement('details');
+      details.className = 'board-group';
+      details.dataset.family = family;
+      if (singleGroup || openGroups.has(family) || !term) details.open = true;
+
+      const summary = document.createElement('summary');
+      summary.className = 'board-group-summary';
+      summary.innerHTML = `${family} <span class="group-count">${boards.length}</span>`;
+      details.appendChild(summary);
+
+      const body = document.createElement('div');
+      body.className = 'board-group-body';
+
+      boards.forEach(b => {
+        const label = document.createElement('label');
+        label.className = 'board-option';
+        label.id = `opt-${b.id}`;
+        if (b.id === boardValue) label.classList.add('selected');
+
+        const input = document.createElement('input');
+        input.type = 'radio'; input.name = 'board'; input.value = b.id;
+        if (b.id === boardValue) input.checked = true;
+        input.addEventListener('change', () => selectBoard(input));
+
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'board-icon';
+        iconDiv.textContent = b.icon;
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'board-name';
+        nameDiv.textContent = b.name;
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'board-meta';
+        metaDiv.textContent = b.meta;
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'board-info';
+        infoDiv.append(nameDiv, metaDiv);
+
+        const checkDiv = document.createElement('div');
+        checkDiv.className = 'board-check';
+
+        label.append(input, iconDiv, infoDiv, checkDiv);
+        body.appendChild(label);
+      });
+
+      details.appendChild(body);
+      list.appendChild(details);
     });
   }
 
@@ -545,9 +732,27 @@
     boardValue = radio.value;
     document.querySelectorAll('.board-option').forEach(el => el.classList.remove('selected'));
     radio.closest('.board-option').classList.add('selected');
-    const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
-    document.getElementById('info-board').textContent = board ? board.name : boardValue;
+    try { localStorage.setItem(STORAGE_KEY, boardValue); } catch { /* private mode */ }
     updateInstallButton();
+  }
+
+  function initBoardSearch() {
+    const input = document.getElementById('board-search');
+    if (input) input.addEventListener('input', () => renderBoards(input.value));
+  }
+
+  function restoreLastBoard() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      const board = window.BOARDS_CONFIG?.find(b => b.id === saved);
+      if (!board) return;
+      boardValue = saved;
+      renderBoards();
+      const radio = document.querySelector(`input[name="board"][value="${saved}"]`);
+      if (radio) radio.checked = true;
+      updateInstallButton();
+    } catch { /* localStorage unavailable */ }
   }
 
   function updateInstallButton() {
@@ -558,7 +763,7 @@
       if (btn._blobUrl) { URL.revokeObjectURL(btn._blobUrl); btn._blobUrl = null; }
       hint.textContent   = boardValue && !manifest
         ? 'Firmware manifest unavailable — check connection and refresh.'
-        : '← Pick a board to continue';
+        : '↑ Pick a board to continue';
       hint.style.display = 'block';
       btn.style.display  = 'none';
       return;
@@ -584,8 +789,28 @@
     btn.style.display  = 'block';
   }
 
+  // ── Theme toggle ────────────────────────────────────────────
+  const THEME_KEY = 'webflash_theme';
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙' : '☀️';
+  }
+  function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    applyTheme(preferred);
+  }
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode */ }
+  });
+  initTheme();
+
   renderBoards();
-  loadManifest();
+  initBoardSearch();
+  restoreLastBoard();
+  loadAllManifests();
 
   if (window.BRANDING_CONFIG?.length) {
     const brandingEl = document.getElementById('branding-links');
@@ -602,6 +827,7 @@
       brandingEl.appendChild(a);
     });
   }
+})();
 </script>
 </body>
 </html>
