@@ -115,6 +115,13 @@ jobs:
             0x8000 .pio/build/${{ matrix.environment }}/partitions.bin \
             0x10000 .pio/build/${{ matrix.environment }}/firmware.bin
 
+      - name: Copy OTA app binary
+        # The merged binary above is for ESP Web Tools (full flash at offset 0).
+        # OTA updates require the app-only binary (no bootloader/partition table).
+        run: |
+          cp .pio/build/${{ matrix.environment }}/firmware.bin \
+             firmware/firmware-${{ matrix.environment }}-${{ inputs.version }}-ota.bin
+
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4.6.0
         with:
