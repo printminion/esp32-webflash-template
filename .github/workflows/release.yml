@@ -125,7 +125,10 @@ jobs:
           # regardless of how many boards exist in total.
           mkdir -p docs/version
           for board in $(jq -r '.boards[].id' project.json); do
-            fw_url="${RELEASES_URL}/firmware-${board}-${VERSION}.bin"
+            # Use the app-only OTA binary, not the merged full-flash binary.
+            # The merged binary includes bootloader+partition table and causes
+            # "Failed to fetch app description header" when applied via esp_https_ota.
+            fw_url="${RELEASES_URL}/firmware-${board}-${VERSION}-ota.bin"
             jq -n --arg v "$VERSION" --arg u "$fw_url" \
               '{"version":$v,"url":$u}' > "docs/version/${board}.json"
           done
