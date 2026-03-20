@@ -90,6 +90,18 @@
         }
       }
     },
+    "lib_deps": {
+      "type": "array",
+      "description": "Project-wide PlatformIO library dependencies added to all board environments. Entries use the same format as platformio.ini lib_deps (e.g. 'owner/name @ ^1.0.0' or a Git URL). Do NOT edit platformio.ini directly — add libraries here and regenerate with: python scripts/generate_platformio.py",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "examples": [
+        ["bitbank2/AnimatedGIF @ ^2.1.1"],
+        ["https://github.com/Seeed-Studio/Seeed_Arduino_RoundDisplay"]
+      ]
+    },
     "boards": {
       "type": "array",
       "description": "All supported target boards. Each entry drives the CI build matrix, platformio.ini env sections, and the web installer board list.",
@@ -203,6 +215,14 @@
             "description": "Short descriptor shown below the board name in the web installer (e.g. chip · arch · flash size)",
             "minLength": 1,
             "examples": ["ESP32-C3 · RISC-V · 4MB Flash"]
+          },
+          "extra_lib_deps": {
+            "type": "array",
+            "description": "Board-specific PlatformIO library dependencies added only to this board's environment(s). Same format as lib_deps entries.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       }

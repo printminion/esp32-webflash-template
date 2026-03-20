@@ -39,6 +39,13 @@ There are no automated tests — validation is done via CI builds on GitHub Acti
 ### Board-specific configuration via include paths
 Each PlatformIO environment adds `-I boards/<board>` to its build flags. This means `#include "board_config.h"` in any source file resolves to the correct board's header at compile time — no runtime conditionals needed. Adding a new board requires: a new entry in `project.json` (source of truth), a new `boards/<board>/board_config.h`, and regenerating `platformio.ini` via `python scripts/generate_platformio.py`. Both CI workflows build their matrix dynamically from `project.json` — no workflow file edits needed.
 
+### Library dependencies
+
+All PlatformIO `lib_deps` are declared in `project.json` — **never edit `platformio.ini` directly**. After editing `project.json`, regenerate with `python scripts/generate_platformio.py`.
+
+- `lib_deps` (top-level array) — shared across all boards. Always includes: `WiFiManager`, `ElegantOTA`, `ArduinoJson`. Add project-specific libs here.
+- `extra_lib_deps` (per-board array) — merged into that board's env only.
+
 ### Feature flags
 `board_config.h` defines `FEATURE_WIFI_PROVISIONING`, `FEATURE_OTA`, and `FEATURE_VERSION_CHECK`. These gate entire subsystems in `main.cpp`. All currently-supported boards enable all three.
 

@@ -12,6 +12,7 @@
     "githubUrl": "https://github.com/printminion/esp32-webflash-template",
     "badgeText": "Web Installer"
   },
+  "lib_deps": [],
   "boards": [
     {
       "id": "seeed_xiao_esp32c3",

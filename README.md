@@ -210,6 +210,30 @@ esp32-webflash-template/
 
 CI/CD picks up the new board automatically via the dynamic matrix in the workflows.
 
+## Migrating an Existing Project
+
+To port an existing Arduino or PlatformIO project into this template:
+
+1. **Add your libraries** — add entries to `lib_deps` in [`project.json`](project.json). Do **not** edit `platformio.ini` directly (it is auto-generated):
+   ```json
+   "lib_deps": [
+     "bitbank2/AnimatedGIF @ ^2.1.1",
+     "https://github.com/Seeed-Studio/Seeed_Arduino_RoundDisplay"
+   ]
+   ```
+   For libraries needed by only one board, use `extra_lib_deps` on that board entry instead.
+
+2. **Regenerate `platformio.ini`** after any `project.json` change:
+   ```bash
+   python scripts/generate_platformio.py
+   ```
+
+3. **Add your application code** to `src/main.cpp` in the `// TODO: add your application logic here` section in `loop()`. If you need additional source files, add them to `src/`.
+
+4. **Add custom pin/hardware config** to `boards/<your-board>/board_config.h`. This file is included at compile time for the matching board only — add display pins, sensor addresses, or any board-specific `#define`s here.
+
+5. **WiFi on first boot** — if your app doesn't need WiFi, disable the feature flags in `board_config.h` (`FEATURE_WIFI_PROVISIONING`, `FEATURE_OTA`, `FEATURE_VERSION_CHECK`). If you keep WiFi, the first boot will show a captive portal before your app runs.
+
 ## Connect & Support
 
 - 🐦 **Follow on X/Twitter:** [@printminion](https://x.com/printminion)
