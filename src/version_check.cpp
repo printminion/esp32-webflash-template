@@ -272,10 +272,21 @@ void checkAndApplyUpdate() {
     return;
   }
 
+  LOGF_STATUS("VersionCheck: OTA URL: %s", firmwareUrl);
+
+  // Enable HTTP client verbose logging to capture header details for debugging.
+  esp_log_level_set("HTTP_CLIENT",   ESP_LOG_VERBOSE);
+  esp_log_level_set("esp_https_ota", ESP_LOG_VERBOSE);
+
+  static const int kOtaHttpBufSize = 8192;
+  LOGF_STATUS("VersionCheck: OTA HTTP buffer = %d bytes", kOtaHttpBufSize);
+
   esp_http_client_config_t cfg = {};
-  cfg.url            = firmwareUrl;
-  cfg.transport_type = HTTP_TRANSPORT_OVER_SSL;
-  cfg.buffer_size    = 8192;  // GitHub CDN headers can be large; 2048/4096 both observed to overflow
+  cfg.url                  = firmwareUrl;
+  cfg.transport_type       = HTTP_TRANSPORT_OVER_SSL;
+  cfg.buffer_size          = kOtaHttpBufSize;
+  cfg.buffer_size_tx       = 1024;
+  cfg.max_redirection_count = 5;  // follow GitHub → CDN redirect
 #if VERSION_CHECK_INSECURE
   cfg.skip_cert_common_name_check = true;
 #else
@@ -293,6 +304,9 @@ void checkAndApplyUpdate() {
   esp_err_t ret = esp_https_ota_begin(&ota_cfg, &handle);
   if (ret != ESP_OK) {
     LOGF_STATUS("VersionCheck: OTA begin failed (0x%x) — continuing with current firmware", (unsigned)ret);
+    // Restore normal log level after failure.
+    esp_log_level_set("HTTP_CLIENT",   ESP_LOG_ERROR);
+    esp_log_level_set("esp_https_ota", ESP_LOG_ERROR);
     return;
   }
 
@@ -313,6 +327,9 @@ void checkAndApplyUpdate() {
 
   bool complete = esp_https_ota_is_complete_data_received(handle);
   esp_err_t finish_ret = esp_https_ota_finish(handle);
+
+  esp_log_level_set("HTTP_CLIENT",   ESP_LOG_ERROR);
+  esp_log_level_set("esp_https_ota", ESP_LOG_ERROR);
 
   if (complete && finish_ret == ESP_OK) {
     LOG_STATUS("OTA complete — rebooting");
