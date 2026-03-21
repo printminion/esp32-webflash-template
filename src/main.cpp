@@ -33,6 +33,21 @@ void setup() {
   LOGF_STATUS("Project  : %s", PROJECT_NAME);
   LOGF_STATUS("Board    : %s", BOARD_NAME);
   LOGF_STATUS("Version  : %s", FIRMWARE_VERSION);
+#ifdef FEATURE_WIFI_PROVISIONING
+  LOG_STATUS("WiFi     : enabled");
+#else
+  LOG_STATUS("WiFi     : disabled");
+#endif
+#ifdef FEATURE_OTA
+  LOG_STATUS("OTA      : enabled");
+#else
+  LOG_STATUS("OTA      : disabled");
+#endif
+#ifdef FEATURE_VERSION_CHECK
+  LOG_STATUS("VerCheck : enabled");
+#else
+  LOG_STATUS("VerCheck : disabled");
+#endif
 
   pinMode(LED_PIN, OUTPUT);
   blinkLed(3);  // startup indication
