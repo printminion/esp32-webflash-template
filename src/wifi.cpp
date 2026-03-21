@@ -82,6 +82,13 @@ bool setupWifi() {
   wm.setWiFiAPChannel(6);  // channel 6 — most universally scanned by phones
   WiFi.setTxPower(WIFI_POWER_19_5dBm);  // maximum TX power
 
+  WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
+    LOGF_STATUS("WiFi: client connected to AP, MAC=%02x:%02x:%02x:%02x:%02x:%02x",
+      info.wifi_ap_staconnected.mac[0], info.wifi_ap_staconnected.mac[1],
+      info.wifi_ap_staconnected.mac[2], info.wifi_ap_staconnected.mac[3],
+      info.wifi_ap_staconnected.mac[4], info.wifi_ap_staconnected.mac[5]);
+  }, ARDUINO_EVENT_WIFI_AP_STACONNECTED);
+
   String apName = computeApName();
 
   LOG_STATUS("-- WiFi Setup ------------------------------------------");
