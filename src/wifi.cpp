@@ -8,6 +8,7 @@
 #include <WiFiManager.h>
 #include <WiFi.h>
 #include <esp_mac.h>
+#include <Preferences.h>
 #include "logger.h"
 
 // Provisioning AP security policy:
@@ -65,10 +66,21 @@ String wifiGetApName() {
   return computeApName();
 }
 
-// Returns true if WiFi credentials are already saved (i.e. not first boot).
-// Uses WiFiManager's stored SSID — does NOT initialize the WiFi stack.
+// Returns true if WiFi has ever successfully connected on this device.
+// Backed by Preferences — immune to stale NVS entries from other sketches.
 bool wifiHasSavedCredentials() {
-  return wm.getWiFiSSID().length() > 0;
+  Preferences prefs;
+  prefs.begin("wifi-state", true);
+  bool configured = prefs.getBool("configured", false);
+  prefs.end();
+  return configured;
+}
+
+static void markWifiConfigured() {
+  Preferences prefs;
+  prefs.begin("wifi-state", false);
+  prefs.putBool("configured", true);
+  prefs.end();
 }
 
 static void (*sApClientConnectedCb)(void) = nullptr;
@@ -120,6 +132,7 @@ bool setupWifi() {
   }
 
   LOGF_STATUS("WiFi: connected, IP=%s", WiFi.localIP().toString().c_str());
+  markWifiConfigured();
   return true;
 }
 
