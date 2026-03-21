@@ -15,3 +15,31 @@
 #define FEATURE_WIFI_PROVISIONING
 #define FEATURE_OTA
 #define FEATURE_VERSION_CHECK
+
+// ============================================================
+// Peripheral pin map — fill in for your hardware
+//
+// Generic ESP32 (DevKitC) common GPIO assignments:
+//   VSPI: SCK=18  MISO=19  MOSI=23  CS=5
+//   HSPI: SCK=14  MISO=12  MOSI=13  CS=15
+//   I2C:  SDA=21  SCL=22
+//
+// SPI bus (VSPI — recommended for most peripherals)
+// #define PIN_SPI_SCK    18
+// #define PIN_SPI_MOSI   23
+// #define PIN_SPI_MISO   19
+//
+// SPI device chip-selects (one per device)
+// #define PIN_DISPLAY_CS  5
+// #define PIN_SD_CS       15
+//
+// Display control lines
+// #define PIN_DISPLAY_DC  2
+// #define PIN_DISPLAY_RST -1  // -1 if tied to 3V3 (no reset needed)
+// #define PIN_DISPLAY_BL  4   // backlight PWM
+//
+// I2C bus (sensors, touch controllers, etc.)
+// #define PIN_I2C_SDA    21
+// #define PIN_I2C_SCL    22
+// #define PIN_I2C_INT    34   // interrupt line (input-only on DevKitC)
+// ============================================================
