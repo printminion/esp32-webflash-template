@@ -71,6 +71,13 @@ bool wifiHasSavedCredentials() {
   return wm.getWiFiSSID().length() > 0;
 }
 
+static void (*sApClientConnectedCb)(void) = nullptr;
+
+// Register a callback invoked when a client connects to the provisioning AP.
+void wifiSetApClientCallback(void (*cb)(void)) {
+  sApClientConnectedCb = cb;
+}
+
 // Starts WiFi — connects to saved credentials, or starts captive portal if none are saved.
 // Returns true if connected, false if not connected (portal timed out or skipped).
 bool setupWifi() {
@@ -87,6 +94,7 @@ bool setupWifi() {
       info.wifi_ap_staconnected.mac[0], info.wifi_ap_staconnected.mac[1],
       info.wifi_ap_staconnected.mac[2], info.wifi_ap_staconnected.mac[3],
       info.wifi_ap_staconnected.mac[4], info.wifi_ap_staconnected.mac[5]);
+    if (sApClientConnectedCb) sApClientConnectedCb();
   }, ARDUINO_EVENT_WIFI_AP_STACONNECTED);
 
   String apName = computeApName();
