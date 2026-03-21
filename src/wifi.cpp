@@ -65,6 +65,12 @@ String wifiGetApName() {
   return computeApName();
 }
 
+// Returns true if WiFi credentials are already saved (i.e. not first boot).
+// Uses WiFiManager's stored SSID — does NOT initialize the WiFi stack.
+bool wifiHasSavedCredentials() {
+  return wm.getWiFiSSID().length() > 0;
+}
+
 // Starts WiFi — connects to saved credentials, or starts captive portal if none are saved.
 // Returns true if connected, false if not connected (portal timed out or skipped).
 bool setupWifi() {
