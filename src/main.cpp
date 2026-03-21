@@ -16,7 +16,9 @@
 
 // ── Forward declarations ──────────────────────────────────
 #ifdef FEATURE_WIFI_PROVISIONING
-void setupWifi();
+#include <WiFi.h>
+bool setupWifi();
+String wifiGetApName();
 #endif
 #ifdef FEATURE_OTA
 void setupOTA();
@@ -57,11 +59,15 @@ void setup() {
 #endif
 
 #ifdef FEATURE_VERSION_CHECK
-  checkAndApplyUpdate();  // check for OTA update before starting services
+  if (WiFi.status() == WL_CONNECTED) {
+    checkAndApplyUpdate();
+  }
 #endif
 
 #ifdef FEATURE_OTA
-  setupOTA();
+  if (WiFi.status() == WL_CONNECTED) {
+    setupOTA();
+  }
 #endif
 
   LOG_STATUS("Setup complete");

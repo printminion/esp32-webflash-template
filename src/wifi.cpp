@@ -40,17 +40,9 @@ static WiFiManager wm;
 
 static constexpr int kPortalTimeoutSec = 180;
 
-void setupWifi() {
-  // Uncomment to reset saved credentials during development:
-  // wm.resetSettings();
-
-  wm.setConfigPortalTimeout(kPortalTimeoutSec);
-  wm.setConnectTimeout(30);
-
-  // AP name shown to user during provisioning — includes firmware version for flash validation.
-  // Use all 6 MAC bytes to guarantee uniqueness across devices.
-  // esp_read_mac fills mac[0..5] in standard OUI-first (MSB-first) byte order.
-  uint8_t macBytes[6] = {};  // zero-initialize so suffix is deterministic if read fails
+// Builds the provisioning AP name: "ESP32-<version>-<mac>"
+static String computeApName() {
+  uint8_t macBytes[6] = {};
   esp_err_t macErr = esp_read_mac(macBytes, ESP_MAC_WIFI_STA);
   if (macErr != ESP_OK) {
     LOGF_STATUS("WiFi: esp_read_mac failed (0x%x) — MAC suffix will be 000000000000", (unsigned)macErr);
@@ -65,7 +57,24 @@ void setupWifi() {
   constexpr int kMaxVersionLen = 32 - 6 - 1 - 12;  // 13
   String versionStr = String(FIRMWARE_VERSION);
   if (versionStr.length() > kMaxVersionLen) versionStr = versionStr.substring(0, kMaxVersionLen);
-  String apName = String("ESP32-") + versionStr + "-" + macSuffix;
+  return String("ESP32-") + versionStr + "-" + macSuffix;
+}
+
+// Returns the AP name that will be used for provisioning (callable before setupWifi).
+String wifiGetApName() {
+  return computeApName();
+}
+
+// Starts WiFi — connects to saved credentials, or starts captive portal if none are saved.
+// Returns true if connected, false if not connected (portal timed out or skipped).
+bool setupWifi() {
+  // Uncomment to reset saved credentials during development:
+  // wm.resetSettings();
+
+  wm.setConfigPortalTimeout(kPortalTimeoutSec);
+  wm.setConnectTimeout(30);
+
+  String apName = computeApName();
 
   LOG_STATUS("-- WiFi Setup ------------------------------------------");
   LOGF_STATUS("Connect to WiFi AP : %s", apName.c_str());
@@ -83,12 +92,12 @@ void setupWifi() {
 #endif
 
   if (!connected) {
-    LOG_STATUS("WiFi: failed to connect — restarting in 5s");
-    delay(5000);
-    ESP.restart();
+    LOG_STATUS("WiFi: failed to connect.");
+    return false;
   }
 
   LOGF_STATUS("WiFi: connected, IP=%s", WiFi.localIP().toString().c_str());
+  return true;
 }
 
 #endif // FEATURE_WIFI_PROVISIONING
