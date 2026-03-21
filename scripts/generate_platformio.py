@@ -33,7 +33,7 @@ PLATFORMIO_SECTION = """\
 default_envs =
 """
 
-ENV_SHARED = """\
+ENV_SHARED_BASE = """\
 ; ------------------------------------------------------------
 ; Shared settings inherited by all environments
 ; ------------------------------------------------------------
@@ -47,7 +47,13 @@ lib_deps =
     tzapu/WiFiManager @ ^2.0.17
     ayushsharma82/ElegantOTA @ ^3.1.0
     bblanchon/ArduinoJson @ ^7.3.1
+"""
 
+ENV_SHARED_PROJECT_LIBS_HEADER = """\
+    ; --- project lib_deps (from project.json) ---
+"""
+
+ENV_SHARED_TAIL = """\
 build_flags =
     -D FIRMWARE_VERSION='"dev"'
     -D PROJECT_NAME='"{project_name}"'
@@ -56,12 +62,13 @@ build_flags =
 
 
 def render_env(board: dict, debug: bool, installer_base: str = "") -> str:
-    bid        = board["id"]
-    name       = board["name"]
-    flag       = board["buildFlag"]
-    pio_board  = board["platformioBoard"]
-    platform   = board["platform"]
-    partitions = board.get("partitionsFile")
+    bid           = board["id"]
+    name          = board["name"]
+    flag          = board["buildFlag"]
+    pio_board     = board["platformioBoard"]
+    platform      = board["platform"]
+    partitions    = board.get("partitionsFile")
+    extra_lib_deps = board.get("extra_lib_deps", [])
 
     suffix     = "-debug" if debug else ""
     board_name = f'{name} (debug)' if debug else name
@@ -80,6 +87,13 @@ def render_env(board: dict, debug: bool, installer_base: str = "") -> str:
 
     if partitions:
         lines.append(f"board_build.partitions = {partitions}")
+
+    if extra_lib_deps:
+        lines.append("lib_deps =")
+        lines.append("    ${env.lib_deps}")
+        lines.append("    ; --- board-specific extra_lib_deps (from project.json) ---")
+        for dep in extra_lib_deps:
+            lines.append(f"    {dep}")
 
     lines.append("build_flags =")
     lines.append("    ${env.build_flags}")
@@ -118,6 +132,7 @@ def generate(config: dict) -> str:
     project_name   = config["project"]["name"]
     installer_base = config.get("installer", {}).get("baseUrl", "").rstrip("/")
     boards         = config["boards"]
+    project_lib_deps = config.get("lib_deps", [])
 
     parts = [HEADER.rstrip()]
 
@@ -125,8 +140,14 @@ def generate(config: dict) -> str:
     default_envs = "\n".join(f"    {b['id']}" for b in boards)
     parts.append(PLATFORMIO_SECTION.rstrip() + "\n" + default_envs)
 
-    # Shared [env]
-    parts.append(ENV_SHARED.format(project_name=project_name).rstrip())
+    # Shared [env] — base deps + optional project-level lib_deps
+    shared = ENV_SHARED_BASE
+    if project_lib_deps:
+        shared += ENV_SHARED_PROJECT_LIBS_HEADER
+        for dep in project_lib_deps:
+            shared += f"    {dep}\n"
+    shared += "\n" + ENV_SHARED_TAIL.format(project_name=project_name)
+    parts.append(shared.rstrip())
 
     # Per-board sections
     for board in boards:

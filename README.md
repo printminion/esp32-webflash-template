@@ -6,12 +6,12 @@ A multi-board ESP32 firmware template with a browser-based web installer powered
 
 > The canonical board list lives in [`project.json`](project.json). The table below is derived from it.
 
-| Board | Environment |
-|---|---|
-| Seeed XIAO ESP32-C3 | `seeed_xiao_esp32c3` |
-| Seeed XIAO ESP32-S3 | `seeed_xiao_esp32s3` |
-| Seeed XIAO ESP32-C6 | `seeed_xiao_esp32c6` |
-| Generic ESP32 | `generic_esp32` |
+| Board               | Environment            |
+| ------------------- | ---------------------- |
+| Seeed XIAO ESP32-C3 | `seeed_xiao_esp32c3`   |
+| Seeed XIAO ESP32-S3 | `seeed_xiao_esp32s3`   |
+| Seeed XIAO ESP32-C6 | `seeed_xiao_esp32c6`   |
+| Generic ESP32       | `generic_esp32`        |
 
 Each board has a matching `-debug` environment with verbose serial logging enabled.
 
@@ -70,7 +70,7 @@ After flashing, the serial monitor may show these informational messages. Both f
 
 ### OTA web server (`OTA_USERNAME` / `OTA_PASSWORD`)
 
-```
+```text
 OTA: web server not started — set OTA_USERNAME and OTA_PASSWORD in build_flags to enable.
 ```
 
@@ -97,7 +97,7 @@ build_flags =
 
 ### Auto-update check (`VERSION_CHECK_URL`)
 
-```
+```text
 VersionCheck: VERSION_CHECK_URL not configured — skipping.
 ```
 
@@ -135,6 +135,7 @@ Install [PlatformIO](https://platformio.org/) then:
 > **WiFi provisioning AP policy** — release environments (`-D NDEBUG`) require an
 > explicit AP security setting. `platformio.ini` is auto-generated and must not be
 > edited by hand; pass the flag via `PLATFORMIO_BUILD_FLAGS` instead:
+>
 > ```bash
 > # Password-protected captive portal (recommended)
 > PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_PASSWORD='\"yourpassword\"'" pio run -e <env>
@@ -142,6 +143,7 @@ Install [PlatformIO](https://platformio.org/) then:
 > # Open AP — development/testing only
 > PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e <env>
 > ```
+>
 > Debug environments (no `-D NDEBUG`) allow an open AP by default — no flag required.
 
 ```bash
@@ -163,7 +165,7 @@ pio device monitor
 
 ## Project Structure
 
-```
+```text
 esp32-webflash-template/
 ├── src/                  # Shared firmware source
 │   ├── main.cpp          # Entry point
@@ -192,6 +194,53 @@ esp32-webflash-template/
     └── project.schema.json  # JSON Schema for project.json validation
 ```
 
+## Custom Partition Tables
+
+The default PlatformIO partition table may be too small for firmware that includes large
+libraries (display stacks, graphics engines, etc.) alongside WiFi. Use a custom CSV to
+control OTA slot sizes and add a SPIFFS partition.
+
+### How partition files are wired
+
+`partitionsFile` in a board entry in `project.json` drives `board_build.partitions` in
+the generated `platformio.ini`:
+
+| `project.json` `partitionsFile`  | Effect in `platformio.ini`                             |
+| -------------------------------- | ------------------------------------------------------ |
+| `null`                           | No override — platform default                         |
+| `"min_spiffs.csv"`               | `board_build.partitions = min_spiffs.csv`              |
+| `"partitions_esp32s3_8mb.csv"`   | `board_build.partitions = partitions_esp32s3_8mb.csv`  |
+
+The CSV file must live at the PlatformIO project root (same directory as `platformio.ini`).
+
+### Adding a custom partition table for a board
+
+1. Create a CSV file at the project root using the ESP-IDF partition table format. Verify
+   that offsets are contiguous and the total does not exceed your board's flash size:
+
+   ```csv
+   # Name,   Type, SubType,  Offset,    Size,     Flags
+   nvs,      data, nvs,      0x9000,    0x5000,
+   otadata,  data, ota,      0xe000,    0x2000,
+   app0,     app,  ota_0,    0x10000,   0x280000,
+   app1,     app,  ota_1,    0x290000,  0x280000,
+   spiffs,   data, spiffs,   0x510000,  0x2E0000,
+   coredump, data, coredump, 0x7F0000,  0x10000,
+   ```
+
+2. Set `"partitionsFile": "your-table.csv"` on the board entry in `project.json`.
+
+3. Regenerate `platformio.ini`:
+
+   ```bash
+   python scripts/generate_platformio.py
+   ```
+
+4. Commit the CSV and the updated `project.json` together.
+
+> **Warning:** Changing the partition table on a device that already has firmware installed
+> requires a full re-flash via USB. OTA cannot resize or move partitions.
+
 ## CI/CD
 
 - **Release build** — push a tag like `v1.0.0` → GitHub Actions builds all environments, creates a GitHub Release with `.bin` assets, and deploys the web installer to GitHub Pages.
@@ -202,13 +251,170 @@ esp32-webflash-template/
 1. Add a new entry to the `boards` array in [`project.json`](project.json) — this is the single source of truth
 2. Create `boards/<your_board>/board_config.h` with pin definitions and feature flags
 3. Regenerate derived files from the new config:
+
    ```bash
    python scripts/generate_platformio.py   # updates platformio.ini
    python scripts/generate_boards_config.py  # updates docs/boards_config.js
    ```
+
 4. Commit all changed files together
 
 CI/CD picks up the new board automatically via the dynamic matrix in the workflows.
+
+## Migrating an Existing Project
+
+To port an existing Arduino or PlatformIO project into this template:
+
+### 0. Convert your Arduino sketch to a PlatformIO source file
+
+> Skip this step if you are already using PlatformIO.
+
+Arduino IDE `.ino` files are not valid C++ — the IDE silently adds `#include <Arduino.h>`
+and forward-declares all functions. PlatformIO does not; you must do this manually:
+
+a. Copy your `.ino` file into `src/` and rename it `main.cpp`. If you have multiple
+   `.ino` tabs, copy each one into `src/` as a `.cpp` file.
+
+b. Add `#include <Arduino.h>` as the very first line of `src/main.cpp` (and any other
+   `.cpp` files that use Arduino types like `String`, `Serial`, etc.).
+
+c. Add forward declarations (or move definitions above their first caller) for any
+   functions used before they are defined. The Arduino IDE generated these silently;
+   PlatformIO will emit `use before declaration` errors if they are missing.
+
+d. Replace any submodule-relative includes with bare library includes:
+
+   ```cpp
+   // before
+   #include "../libs/MyLib/MyLib.h"
+   // after
+   #include <MyLib.h>
+   ```
+
+e. Remove the git submodule directories (`lib/`, `libraries/`, or wherever they lived):
+
+   ```bash
+   git submodule deinit --all
+   git rm -r <submodule-path>
+   ```
+
+f. Delete any `libraries.properties` or `library.json` files that belonged to the
+   removed submodules.
+
+Move your application logic into the `// TODO: add your application logic here` block in
+`loop()`, or replace `src/main.cpp` entirely if your project has a different structure.
+
+---
+
+### 1. Add your libraries
+
+Add entries to `lib_deps` in [`project.json`](project.json). Do **not** edit
+`platformio.ini` directly (it is auto-generated and will be overwritten):
+
+```json
+"lib_deps": [
+  "author/LibraryName @ ^1.2.3",
+  "https://github.com/org/repo"
+]
+```
+
+For libraries needed by only one board, use `extra_lib_deps` on that board's entry
+instead of the top-level array:
+
+```json
+{
+  "id": "seeed_xiao_esp32s3",
+  "extra_lib_deps": [
+    "author/BoardSpecificLib @ ^1.0.0"
+  ]
+}
+```
+
+After every `project.json` change, regenerate `platformio.ini`:
+
+```bash
+python scripts/generate_platformio.py
+```
+
+#### Display libraries — `User_Setup.h` pattern (TFT_eSPI)
+
+TFT_eSPI reads pin numbers from a `User_Setup.h` file at compile time, not from runtime
+arguments. The correct approach in PlatformIO is to place a `User_Setup.h` alongside the
+board's `board_config.h`:
+
+```text
+boards/seeed_xiao_esp32s3/User_Setup.h   ← board-specific display config
+```
+
+Because `boards/seeed_xiao_esp32s3/` is already on the include path (via
+`-I boards/seeed_xiao_esp32s3` in `build_flags`), TFT_eSPI will pick up this file
+automatically and shadow the library's own default — no extra build flags needed.
+
+Minimal `User_Setup.h` skeleton:
+
+```cpp
+#define USER_SETUP_LOADED
+
+// Driver (uncomment the one matching your display)
+// #define GC9A01_DRIVER
+// #define ILI9341_DRIVER
+// #define ST7789_DRIVER
+
+#define TFT_WIDTH  240
+#define TFT_HEIGHT 240
+
+// SPI pin assignments — match your board_config.h values
+#define TFT_CS    2
+#define TFT_DC    4
+#define TFT_RST  -1   // -1 if the RST pin is tied to 3.3 V
+#define TFT_BL    7   // backlight — omit if not used
+
+#define TFT_BACKLIGHT_ON HIGH
+
+#define LOAD_GLCD
+#define SPI_FREQUENCY  40000000
+```
+
+---
+
+### 2. Regenerate `platformio.ini`
+
+```bash
+python scripts/generate_platformio.py
+```
+
+Run this after every `project.json` change. The file is auto-generated and must not be
+edited by hand.
+
+---
+
+### 3. Add your application code
+
+Add code to `src/main.cpp` in the `// TODO: add your application logic here` section in
+`loop()`. Additional source files go in `src/`.
+
+---
+
+### 4. Add custom pin / hardware config
+
+Edit `boards/<your-board>/board_config.h`. This file is included at compile time for the
+matching board only — add display pins, sensor addresses, or any board-specific
+`#define`s here. Each `board_config.h` has a commented peripheral pin map section as a
+starting point.
+
+---
+
+### 5. Disable unused features
+
+If your app doesn't need WiFi, comment out the feature flags in `board_config.h`:
+
+```cpp
+// #define FEATURE_WIFI_PROVISIONING
+// #define FEATURE_OTA
+// #define FEATURE_VERSION_CHECK
+```
+
+If you keep WiFi, the first boot shows a captive portal before your app runs.
 
 ## Connect & Support
 

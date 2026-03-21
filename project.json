@@ -12,6 +12,7 @@
     "githubUrl": "https://github.com/printminion/esp32-webflash-template",
     "badgeText": "Web Installer"
   },
+  "lib_deps": [],
   "boards": [
     {
       "id": "seeed_xiao_esp32c3",
@@ -36,7 +37,7 @@
       "platform": "espressif32",
       "platformioBoard": "seeed_xiao_esp32s3",
       "buildFlag": "BOARD_SEEED_XIAO_ESP32S3",
-      "partitionsFile": null,
+      "partitionsFile": "partitions_esp32s3_8mb.csv",
       "requiresUv": false,
       "icon": "🔵",
       "meta": "ESP32-S3 · Xtensa · 8MB Flash · Camera ready"
