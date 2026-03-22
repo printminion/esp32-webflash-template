@@ -102,7 +102,12 @@
       "requiresWifi": true
     }
   ],
-  "components": [],
+  "components": [
+    {
+      "name": "Push Button",
+      "description": "Tactile momentary push button — connect between BUTTON_PIN and GND"
+    }
+  ],
   "branding": [
     { "icon": "🐦", "label": "@printminion", "url": "https://x.com/printminion" },
     { "icon": "🖨️", "label": "3D Enclosures on Cults3D", "url": "https://cults3d.com/@printminion" },
