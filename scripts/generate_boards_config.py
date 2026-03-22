@@ -47,6 +47,20 @@ def main() -> None:
 
     lines.append("];")
 
+    variants = config.get("firmwareVariants", [])
+    if variants:
+        lines.append("")
+        lines.append("window.VARIANTS_CONFIG = [")
+        for i, v in enumerate(variants):
+            comma = "," if i < len(variants) - 1 else ""
+            vid   = js(v["id"])
+            label = js(v["label"])
+            desc  = js(v.get("description", ""))
+            lines.append(
+                f'  {{ id: {vid}, label: {label}, description: {desc} }}{comma}'
+            )
+        lines.append("];")
+
     branding = config.get("branding", [])
     if branding:
         lines.append("")
