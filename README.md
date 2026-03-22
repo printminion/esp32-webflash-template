@@ -22,6 +22,9 @@ Each board has a matching `-debug` environment with verbose serial logging enabl
 - **Board-specific config** — pin maps and feature flags isolated in `boards/<board>/board_config.h`
 - **Debug / release builds** — `LOG()` macros compile out completely in release builds
 - **Web installer** — flash directly from your browser at the [installer page](https://printminion.github.io/esp32-webflash-template/)
+- **Firmware variants** — ship a no-WiFi build (smaller, no provisioning/OTA) alongside the full WiFi build; selectable in the web installer
+- **Hardware BOM** — list project components with shop links and thumbnails in the web installer's "Required Hardware" card
+- **Web installer project info** — description, YouTube demo, and HowTo links driven by `installer.*` fields in `project.json`
 
 ## Setting up your fork
 
@@ -34,6 +37,10 @@ Update these fields to match your fork:
 - `project.name` and `installer.title` — your project name
 - `installer.baseUrl` — `https://<your-username>.github.io/<your-repo>`
 - `installer.githubUrl` — your fork URL
+- `installer.description` — one-sentence description shown under the page title (optional)
+- `installer.youtubeUrl` / `installer.howToUrl` — optional YouTube demo and HowTo guide links
+- Per-board: `sku`, `url`, `image` — optional SKU, shop link, and thumbnail shown in "Required Hardware"
+- `components[]` — bill-of-materials: additional hardware components shown in "Required Hardware" alongside the board
 
 ### 2. Enable GitHub Pages
 
@@ -150,8 +157,11 @@ Install [PlatformIO](https://platformio.org/) then:
 # Build all environments (requires WiFi AP flag — see note above)
 PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run
 
-# Build a specific release board
+# Build the default variant for a board (no-wifi, no env suffix)
 PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32c3
+
+# Build the WiFi variant (non-default — -wifi suffix)
+PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32c3-wifi
 
 # Build debug variant (no flag required — open AP allowed by default)
 pio run -e seeed_xiao_esp32c3-debug
@@ -162,6 +172,38 @@ PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32c3 -t uplo
 # Monitor serial output
 pio device monitor
 ```
+
+## Firmware Variants
+
+`project.json` → `firmwareVariants[]` defines the firmware builds the project ships. Each variant maps to a separate PlatformIO environment, CI build, and web installer button.
+
+### How it works
+
+- **First entry is the default** — no suffix on env names or binary filenames (e.g. `seeed_xiao_esp32c3`, `firmware-seeed_xiao_esp32c3-v1.0.0.bin`)
+- **Subsequent entries** get a `-{id}` suffix (e.g. `seeed_xiao_esp32c3-wifi`, `firmware-seeed_xiao_esp32c3-wifi-v1.0.0.bin`)
+- The web installer shows a **"Select firmware"** toggle when more than one variant is configured
+
+### Built-in variants
+
+| id | label | Effect |
+| --- | --- | --- |
+| `nowifi` | No WiFi | Adds `-D VARIANT_NO_WIFI`; disables WiFi provisioning, OTA, and auto-update |
+| `wifi` | WiFi | No extra flags; full WiFi stack enabled |
+
+`VARIANT_NO_WIFI` causes `board_config.h` to omit `FEATURE_WIFI_PROVISIONING`, `FEATURE_OTA`, and `FEATURE_VERSION_CHECK`, producing a minimal build with no network dependencies.
+
+### Customising variants
+
+Edit `firmwareVariants[]` in `project.json`, then regenerate derived files:
+
+```bash
+python scripts/generate_platformio.py    # updates platformio.ini
+python scripts/generate_boards_config.py # updates docs/boards_config.js (web installer)
+```
+
+You can add, remove, or reorder variants freely. Whichever entry is **first** becomes the default — it gets no env suffix and appears as the initial selection in the web installer.
+
+---
 
 ## Project Structure
 
@@ -181,7 +223,8 @@ esp32-webflash-template/
 │   └── generic_esp32/board_config.h
 ├── docs/                 # GitHub Pages web installer
 │   ├── index.html
-│   ├── boards_config.js  # auto-generated board list (loaded by index.html)
+│   ├── boards_config.js  # auto-generated from project.json (loaded by index.html)
+│   ├── assets/boards/    # locally cached board thumbnails
 │   ├── manifest.json     # release channel firmware manifest
 │   ├── version.json      # legacy per-firmware download index
 │   └── version/          # per-board version files fetched by firmware OTA
@@ -406,7 +449,9 @@ starting point.
 
 ### 5. Disable unused features
 
-If your app doesn't need WiFi, comment out the feature flags in `board_config.h`:
+If your project doesn't need WiFi, use `firmwareVariants` in `project.json` to ship a no-WiFi build (see [Firmware Variants](#firmware-variants)). The preferred approach is to configure a variant with `requiresWifi: false` and `"buildFlags": ["-D VARIANT_NO_WIFI"]` — this disables provisioning, OTA, and auto-update for that variant while keeping the WiFi build available.
+
+For a quick local override without modifying `project.json`, you can comment out flags directly in `board_config.h`:
 
 ```cpp
 // #define FEATURE_WIFI_PROVISIONING

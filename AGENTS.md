@@ -16,11 +16,14 @@ This file provides guidance to AI agents (Claude Code, Copilot, Cursor, etc.) wh
 # Build all environments (release envs require a WiFi AP flag — see wifi.cpp)
 PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run
 
-# Build a single release environment
+# Build the default (no-wifi) variant for a board — no env suffix
 PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32c3
 PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32s3
 PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32c6
 PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e generic_esp32
+
+# Build the wifi variant (non-default — -wifi suffix)
+PLATFORMIO_BUILD_FLAGS="-D WIFI_AP_OPEN=1" pio run -e seeed_xiao_esp32c3-wifi
 
 # Build debug variant (no WiFi AP flag required — open AP allowed in debug builds)
 pio run -e seeed_xiao_esp32c3-debug
@@ -47,7 +50,36 @@ All PlatformIO `lib_deps` are declared in `project.json` — **never edit `platf
 - `extra_lib_deps` (per-board array) — merged into that board's env only.
 
 ### Feature flags
-`board_config.h` defines `FEATURE_WIFI_PROVISIONING`, `FEATURE_OTA`, and `FEATURE_VERSION_CHECK`. These gate entire subsystems in `main.cpp`. All currently-supported boards enable all three.
+`board_config.h` defines `FEATURE_WIFI_PROVISIONING`, `FEATURE_OTA`, and `FEATURE_VERSION_CHECK`. These gate entire subsystems in `main.cpp`. They are controlled via the `firmwareVariants` system — the `VARIANT_NO_WIFI` build flag (injected by the no-wifi variant) causes `board_config.h` to omit all three at compile time.
+
+Each `board_config.h` also defines `BUTTON_PIN` and `BUTTON_ACTIVE_LOW` (defaulting to the board's built-in boot button GPIO). When `BUTTON_PIN` is defined, `main.cpp` enables a debounced LED toggle on button press. All references are guarded by `#ifdef BUTTON_PIN` so the feature compiles out when the define is absent.
+
+### Firmware variants architecture
+
+`project.json → firmwareVariants[]` is the single source of truth for all variant behaviour:
+
+- **PlatformIO envs** (`scripts/generate_platformio.py`) — first entry (`_is_default = true`) gets no suffix (`seeed_xiao_esp32c3`); subsequent entries get `-{id}` suffix (`seeed_xiao_esp32c3-wifi`).
+- **CI build matrix** (`dev.yml`, `release.yml`) — `jq` uses `.firmwareVariants | to_entries[]` for index-aware iteration; key 0 → no suffix.
+- **Manifest** (`manifest.json`) — each build entry carries a `variant` field matching the variant `id`.
+- **Web installer toggle** — shown when `VARIANTS_CONFIG` has more than one entry; first variant is the initial selection.
+- `requiresWifi: false` on a variant causes `scripts/set_wifi_ap_flags.py` to skip the WiFi AP password policy check for that variant's environments.
+
+### Web installer config system
+
+`docs/boards_config.js` is **auto-generated** by `scripts/generate_boards_config.py` — never edit by hand. Run it after any `project.json` change:
+
+```bash
+python scripts/generate_boards_config.py
+```
+
+It emits four `window.*` globals consumed by `docs/index.html`:
+
+- `BOARDS_CONFIG` — board list with `id`, `name`, `chipFamily`, `icon`, `sku`, `url`, `image`
+- `VARIANTS_CONFIG` — variant list with `id`, `label`, `description`
+- `COMPONENTS_CONFIG` — BOM components array (omitted when `components[]` is empty)
+- `PROJECT_CONFIG` — installer metadata: `title`, `h1`, `subtitle`, `description`, `youtubeUrl`, `howToUrl`, `baseUrl`, `githubUrl`
+
+Board `image` fields accept a relative path from `docs/` (e.g. `assets/boards/my-board.png`) or an absolute `https://` URL. Locally cached thumbnails live in `docs/assets/boards/`.
 
 ### Logging system
 `include/logger.h` provides `LOG()`, `LOGF()`, `LOG_RAW()` macros. When `DEBUG_BUILD` is not defined they compile to nothing; when `DEBUG_BUILD` is defined they emit via Serial. Never use `Serial.print` directly.
