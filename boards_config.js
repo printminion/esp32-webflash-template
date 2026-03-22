@@ -12,6 +12,10 @@ window.VARIANTS_CONFIG = [
   { id: "wifi", label: "WiFi", description: "WiFi provisioning + OTA updates" }
 ];
 
+window.COMPONENTS_CONFIG = [
+  { name: "Push Button", description: "Tactile momentary push button — connect between BUTTON_PIN and GND", sku: null, url: null, image: null }
+];
+
 window.BRANDING_CONFIG = [
   { icon: "🐦", label: "@printminion", url: "https://x.com/printminion" },
   { icon: "🖨️", label: "3D Enclosures on Cults3D", url: "https://cults3d.com/@printminion" },
