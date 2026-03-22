@@ -1,14 +1,26 @@
 {
   "name": "esp32-webflash-template",
-  "version": "dev-e0095c2",
+  "version": "dev-af61c3c",
   "channel": "dev",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "board": "Seeed XIAO ESP32-C3",
+      "variant": "nowifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32c3-dev-e0095c2.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32c3-dev-af61c3c.bin",
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-C3",
+      "board": "Seeed XIAO ESP32-C3",
+      "variant": "wifi",
+      "parts": [
+        {
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32c3-wifi-dev-af61c3c.bin",
           "offset": 0
         }
       ]
@@ -16,9 +28,21 @@
     {
       "chipFamily": "ESP32-S3",
       "board": "Seeed XIAO ESP32-S3",
+      "variant": "nowifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32s3-dev-e0095c2.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32s3-dev-af61c3c.bin",
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-S3",
+      "board": "Seeed XIAO ESP32-S3",
+      "variant": "wifi",
+      "parts": [
+        {
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32s3-wifi-dev-af61c3c.bin",
           "offset": 0
         }
       ]
@@ -26,9 +50,21 @@
     {
       "chipFamily": "ESP32-C6",
       "board": "Seeed XIAO ESP32-C6",
+      "variant": "nowifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32c6-dev-e0095c2.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32c6-dev-af61c3c.bin",
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32-C6",
+      "board": "Seeed XIAO ESP32-C6",
+      "variant": "wifi",
+      "parts": [
+        {
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-seeed_xiao_esp32c6-wifi-dev-af61c3c.bin",
           "offset": 0
         }
       ]
@@ -36,9 +72,21 @@
     {
       "chipFamily": "ESP32",
       "board": "Generic ESP32",
+      "variant": "nowifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-generic_esp32-dev-e0095c2.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-generic_esp32-dev-af61c3c.bin",
+          "offset": 0
+        }
+      ]
+    },
+    {
+      "chipFamily": "ESP32",
+      "board": "Generic ESP32",
+      "variant": "wifi",
+      "parts": [
+        {
+          "path": "https://printminion.github.io/esp32-webflash-template/dev/firmware-generic_esp32-wifi-dev-af61c3c.bin",
           "offset": 0
         }
       ]
