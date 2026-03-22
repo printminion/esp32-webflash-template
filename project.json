@@ -71,6 +71,22 @@
       "meta": "ESP32 · Xtensa Dual-core · DevKitC"
     }
   ],
+  "firmwareVariants": [
+    {
+      "id": "nowifi",
+      "label": "No WiFi",
+      "description": "Minimal build — no WiFi provisioning or OTA",
+      "buildFlags": ["-D VARIANT_NO_WIFI"],
+      "requiresWifi": false
+    },
+    {
+      "id": "wifi",
+      "label": "WiFi",
+      "description": "WiFi provisioning + OTA updates",
+      "buildFlags": [],
+      "requiresWifi": true
+    }
+  ],
   "branding": [
     { "icon": "🐦", "label": "@printminion", "url": "https://x.com/printminion" },
     { "icon": "🖨️", "label": "3D Enclosures on Cults3D", "url": "https://cults3d.com/@printminion" },
