@@ -61,7 +61,8 @@ build_flags =
 """
 
 
-def render_env(board: dict, debug: bool, installer_base: str = "") -> str:
+def render_env(board: dict, debug: bool, installer_base: str = "",
+               variant=None) -> str:
     bid           = board["id"]
     name          = board["name"]
     flag          = board["buildFlag"]
@@ -70,14 +71,27 @@ def render_env(board: dict, debug: bool, installer_base: str = "") -> str:
     partitions    = board.get("partitionsFile")
     extra_lib_deps = board.get("extra_lib_deps", [])
 
-    suffix     = "-debug" if debug else ""
-    board_name = f'{name} (debug)' if debug else name
+    variant_id    = "" if not variant or variant.get("_is_default") else variant["id"]
+    variant_flags = variant.get("buildFlags", []) if variant else []
+    requires_wifi = variant.get("requiresWifi", True) if variant else True
+
+    env_suffix = ""
+    if variant_id:
+        env_suffix += f"-{variant_id}"
+    if debug:
+        env_suffix += "-debug"
+
+    board_name = name
+    if variant_id:
+        board_name += f" ({variant['label']})"
+    if debug:
+        board_name += " (debug)"
 
     lines = [
         f"; {'─' * 60}",
-        f"; {name}  —  {'debug' if debug else 'release'}",
+        f"; {name}  —  {'debug' if debug else 'release'}" + (f"  —  {variant['label']}" if variant_id else ""),
         f"; {'─' * 60}",
-        f"[env:{bid}{suffix}]",
+        f"[env:{bid}{env_suffix}]",
         f"board = {pio_board}",
     ]
 
@@ -100,6 +114,9 @@ def render_env(board: dict, debug: bool, installer_base: str = "") -> str:
     lines.append(f"    -D {flag}")
     lines.append(f"    -D BOARD_NAME='\"{board_name}\"'")
 
+    for vflag in variant_flags:
+        lines.append(f"    {vflag}")
+
     if debug:
         lines.append("    -D DEBUG_BUILD")
         lines.append("    -D CORE_DEBUG_LEVEL=4")
@@ -108,17 +125,18 @@ def render_env(board: dict, debug: bool, installer_base: str = "") -> str:
         # set WIFI_AP_PASSWORD globally without hitting the "both defined" build error.
     else:
         lines.append("    -D NDEBUG")
-        # Emit explanatory comments so users understand why the release env
-        # doesn't compile without an explicit WiFi AP policy.
-        lines.append("    ; wifi.cpp requires WIFI_AP_PASSWORD or WIFI_AP_OPEN=1 for release builds.")
-        lines.append("    ; Add one of the following to build_flags:")
-        lines.append("    ;   -D WIFI_AP_PASSWORD='\"yourpassword\"'  ; password-protected (recommended)")
-        lines.append("    ;   -D WIFI_AP_OPEN=1                      ; open AP — not for production")
-        # Per-board Auto-OTA opt-in hint with the pre-computed URL.
-        if installer_base:
-            url = f"{installer_base}/version/{bid}.json"
-            lines.append("    ; Auto-OTA opt-in: uncomment the line below to enable version checking.")
-            lines.append(f"    ;   -D VERSION_CHECK_URL='\"{url}\"'")
+        if requires_wifi:
+            # Emit explanatory comments so users understand why the release env
+            # doesn't compile without an explicit WiFi AP policy.
+            lines.append("    ; wifi.cpp requires WIFI_AP_PASSWORD or WIFI_AP_OPEN=1 for release builds.")
+            lines.append("    ; Add one of the following to build_flags:")
+            lines.append("    ;   -D WIFI_AP_PASSWORD='\"yourpassword\"'  ; password-protected (recommended)")
+            lines.append("    ;   -D WIFI_AP_OPEN=1                      ; open AP — not for production")
+            # Per-board Auto-OTA opt-in hint with the pre-computed URL.
+            if installer_base:
+                url = f"{installer_base}/version/{bid}.json"
+                lines.append("    ; Auto-OTA opt-in: uncomment the line below to enable version checking.")
+                lines.append(f"    ;   -D VERSION_CHECK_URL='\"{url}\"'")
 
     lines.append(f"    -I boards/{bid}")
 
@@ -133,11 +151,18 @@ def generate(config: dict) -> str:
     installer_base = config.get("installer", {}).get("baseUrl", "").rstrip("/")
     boards         = config["boards"]
     project_lib_deps = config.get("lib_deps", [])
+    variants       = config.get("firmwareVariants", [{"id": "standard", "label": "Standard",
+                                                       "buildFlags": [], "requiresWifi": True}])
 
     parts = [HEADER.rstrip()]
 
-    # [platformio] with default_envs list
-    default_envs = "\n".join(f"    {b['id']}" for b in boards)
+    # [platformio] with default_envs list — first variant has no suffix (default)
+    env_ids = []
+    for i, variant in enumerate(variants):
+        for board in boards:
+            suffix = "" if i == 0 else f"-{variant['id']}"
+            env_ids.append(f"{board['id']}{suffix}")
+    default_envs = "\n".join(f"    {eid}" for eid in env_ids)
     parts.append(PLATFORMIO_SECTION.rstrip() + "\n" + default_envs)
 
     # Shared [env] — base deps + optional project-level lib_deps
@@ -149,10 +174,12 @@ def generate(config: dict) -> str:
     shared += "\n" + ENV_SHARED_TAIL.format(project_name=project_name)
     parts.append(shared.rstrip())
 
-    # Per-board sections
-    for board in boards:
-        parts.append(render_env(board, debug=False, installer_base=installer_base))
-        parts.append(render_env(board, debug=True))
+    # Per-board × per-variant sections — first variant is the default (no suffix)
+    for i, variant in enumerate(variants):
+        v = dict(variant, _is_default=(i == 0))
+        for board in boards:
+            parts.append(render_env(board, debug=False, installer_base=installer_base, variant=v))
+            parts.append(render_env(board, debug=True, variant=v))
 
     return "\n\n".join(parts) + "\n"
 
