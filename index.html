@@ -493,139 +493,6 @@
       margin-bottom: 0.25rem;
       font-size: 0.85rem;
     }
-
-    /* ── Project description & links ─────────────────────── */
-    .project-description {
-      font-size: 0.85rem;
-      color: var(--muted);
-      text-align: center;
-      max-width: 560px;
-      margin: 0.35rem 0 0;
-      line-height: 1.5;
-    }
-
-    .project-links {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 0.5rem;
-      font-size: 0.8rem;
-    }
-    .project-links a {
-      color: var(--muted);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
-      transition: color 0.2s;
-    }
-    .project-links a:hover { color: var(--accent); }
-
-    /* ── BOM card ─────────────────────────────────────────── */
-    .bom-card {
-      width: 100%;
-      max-width: 560px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      margin-top: 1.25rem;
-      animation: fadeUp 0.6s 0.2s ease both;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12);
-    }
-    .bom-card-title {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      padding: 1rem 1.5rem 0;
-    }
-    .bom-card-body { padding: 1rem 1.5rem 1.25rem; }
-
-    .bom-section-label {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      letter-spacing: 0.1em;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 0.75rem;
-    }
-    .bom-section-label + .bom-section-label,
-    .bom-divider {
-      margin-top: 1rem;
-    }
-
-    .bom-row {
-      display: flex;
-      align-items: center;
-      gap: 0.9rem;
-      padding: 0.6rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .bom-row:last-child { border-bottom: none; }
-
-    .bom-thumb {
-      width: 52px; height: 52px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      object-fit: cover;
-      flex-shrink: 0;
-      background: rgba(0,0,0,0.04);
-    }
-    .bom-thumb-placeholder {
-      width: 52px; height: 52px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      flex-shrink: 0;
-      background: rgba(0,0,0,0.04);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-    }
-
-    .bom-info { flex: 1; min-width: 0; }
-    .bom-name {
-      font-weight: 600;
-      font-size: 0.88rem;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .bom-sku {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      color: var(--muted);
-      margin-top: 0.1rem;
-    }
-    .bom-desc {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-top: 0.1rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .bom-buy {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--accent);
-      text-decoration: none;
-      white-space: nowrap;
-      border: 1px solid rgba(0,212,255,0.25);
-      border-radius: 6px;
-      padding: 0.25rem 0.6rem;
-      transition: background 0.2s, border-color 0.2s;
-      flex-shrink: 0;
-    }
-    .bom-buy:hover {
-      background: rgba(0,212,255,0.08);
-      border-color: rgba(0,212,255,0.5);
-    }
   </style>
 </head>
 <body>
@@ -634,8 +501,6 @@
 
   <header>
     <h1 id="page-h1">ESP32 Webflash Template</h1>
-    <p id="project-description" class="project-description" style="display:none"></p>
-    <div id="project-links" class="project-links" style="display:none"></div>
     <p id="branding-links" class="branding-links"></p>
   </header>
 
@@ -652,11 +517,8 @@
         <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
       </div>
 
-      <div class="field-label" id="variant-label" style="display:none">2. Select firmware</div>
-      <div class="channel-toggle" id="variant-toggle" style="display:none"></div>
-
       <div class="field-label-row">
-        <div class="field-label" id="board-step-label">3. Select board</div>
+        <div class="field-label">2. Select board</div>
         <span class="board-count-badge" id="board-count"></span>
       </div>
 
@@ -677,7 +539,7 @@
         Try a different search term.
       </div>
 
-      <div class="field-label" style="margin-top:1rem" id="flash-step-label">4. Connect USB &amp; flash</div>
+      <div class="field-label" style="margin-top:1rem">3. Connect USB &amp; flash</div>
       <div class="flash-wrap">
         <div class="no-board-hint" id="no-board-hint">↑ Pick a board to continue</div>
         <esp-web-install-button id="install-btn" style="display:none">
@@ -689,11 +551,6 @@
       </div>
 
     </div>
-  </div>
-
-  <div id="bom-card" class="bom-card" style="display:none">
-    <div class="bom-card-title">Required Hardware</div>
-    <div class="bom-card-body" id="bom-card-body"></div>
   </div>
 
   <footer>
@@ -727,17 +584,14 @@
   }
   if (cfg.githubUrl) {
     document.getElementById('github-link').href = cfg.githubUrl;
-    const howTo = cfg.howToUrl || `${cfg.githubUrl}/wiki/Troubleshooting`;
-    document.getElementById('troubleshoot-link').href = howTo;
+    document.getElementById('troubleshoot-link').href = `${cfg.githubUrl}/wiki/Troubleshooting`;
   }
 
-  const STORAGE_KEY  = 'webflash_last_board';
-  const VARIANT_KEY  = 'webflash_last_variant';
+  const STORAGE_KEY = 'webflash_last_board';
 
-  let channel      = 'release';
-  let variantValue = window.VARIANTS_CONFIG?.[0]?.id || 'nowifi';
-  let boardValue   = null;
-  let manifest     = null;
+  let channel    = 'release';
+  let boardValue = null;
+  let manifest   = null;
 
   if (!('serial' in navigator)) {
     document.getElementById('app').classList.add('no-serial');
@@ -793,18 +647,6 @@
     document.getElementById('btn-dev').classList.toggle('active', ch === 'dev');
     document.getElementById('btn-dev').setAttribute('aria-pressed', String(ch === 'dev'));
     loadManifest();
-  }
-
-  window.setVariant = function setVariant(vid) {
-    variantValue = vid;
-    document.querySelectorAll('#variant-toggle .channel-btn').forEach(btn => {
-      const active = btn.dataset.variantId === vid;
-      btn.classList.toggle('active', active);
-      btn.setAttribute('aria-pressed', String(active));
-    });
-    try { localStorage.setItem(VARIANT_KEY, vid); } catch { /* private mode */ }
-    renderBoards(document.getElementById('board-search')?.value);
-    updateInstallButton();
   }
 
   function renderBoards(filter) {
@@ -881,11 +723,7 @@
 
         const nameDiv = document.createElement('div');
         nameDiv.className = 'board-name';
-        const activeVariant   = window.VARIANTS_CONFIG?.find(v => v.id === variantValue);
-        const defaultVariantId = window.VARIANTS_CONFIG?.[0]?.id;
-        nameDiv.textContent = (activeVariant && activeVariant.id !== defaultVariantId)
-          ? `${b.name} (${activeVariant.label})`
-          : b.name;
+        nameDiv.textContent = b.name;
 
         const metaDiv = document.createElement('div');
         metaDiv.className = 'board-meta';
@@ -913,49 +751,11 @@
     radio.closest('.board-option').classList.add('selected');
     try { localStorage.setItem(STORAGE_KEY, boardValue); } catch { /* private mode */ }
     updateInstallButton();
-    renderBOM();
   }
 
   function initBoardSearch() {
     const input = document.getElementById('board-search');
     if (input) input.addEventListener('input', () => renderBoards(input.value));
-  }
-
-  function initVariants() {
-    const variants = window.VARIANTS_CONFIG;
-    if (!Array.isArray(variants) || variants.length <= 1) {
-      // Single variant (or none defined): hide the step and collapse step numbers.
-      // Still set variantValue to the actual variant id so the manifest lookup works
-      // even if the project ships only a non-standard variant (e.g. only "nowifi").
-      if (variants && variants.length === 1) variantValue = variants[0].id;
-      document.getElementById('board-step-label').textContent = '2. Select board';
-      document.getElementById('flash-step-label').textContent = '3. Connect USB & flash';
-      return;
-    }
-
-    const toggle = document.getElementById('variant-toggle');
-    variants.forEach(v => {
-      const btn = document.createElement('button');
-      btn.className = 'channel-btn' + (v.id === variantValue ? ' active' : '');
-      btn.dataset.variantId = v.id;
-      btn.setAttribute('aria-pressed', String(v.id === variantValue));
-      btn.title = v.description || '';
-      btn.textContent = v.label;
-      btn.addEventListener('click', () => setVariant(v.id));
-      toggle.appendChild(btn);
-    });
-
-    document.getElementById('variant-label').style.display = '';
-    toggle.style.display = '';
-
-    // Restore last-used variant
-    try {
-      const saved = localStorage.getItem(VARIANT_KEY);
-      if (saved && variants.find(v => v.id === saved)) {
-        variantValue = saved;
-        setVariant(saved);
-      }
-    } catch { /* localStorage unavailable */ }
   }
 
   function restoreLastBoard() {
@@ -987,11 +787,7 @@
     }
 
     const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
-    const defaultVariant = window.VARIANTS_CONFIG?.[0]?.id || 'standard';
-    const selectedVariant = variantValue || defaultVariant;
-    const build = manifest.builds?.find(b =>
-      b.board === board?.name && (b.variant || 'standard') === selectedVariant
-    );
+    const build = manifest.builds?.find(b => b.board === board?.name);
     if (!build) {
       if (btn._blobUrl) { URL.revokeObjectURL(btn._blobUrl); btn._blobUrl = null; }
       hint.textContent   = 'Firmware not found for this board in manifest.';
@@ -1008,127 +804,6 @@
     btn.setAttribute('manifest', btn._blobUrl);
     hint.style.display = 'none';
     btn.style.display  = 'block';
-  }
-
-  // ── Project description & links ─────────────────────────────
-  function renderProjectInfo() {
-    const c = window.PROJECT_CONFIG;
-    if (!c) return;
-
-    if (c.description) {
-      const el = document.getElementById('project-description');
-      el.textContent = c.description;
-      el.style.display = '';
-    }
-
-    const links = [];
-    if (c.githubUrl)  links.push({ icon: '🐙', label: 'GitHub',       url: c.githubUrl });
-    if (c.youtubeUrl) links.push({ icon: '▶️',  label: 'Demo',         url: c.youtubeUrl });
-    const howToUrl = c.howToUrl || (c.githubUrl ? `${c.githubUrl}/wiki/Troubleshooting` : '');
-    if (howToUrl)     links.push({ icon: '📖', label: 'How to flash', url: howToUrl });
-
-    if (links.length) {
-      const el = document.getElementById('project-links');
-      links.forEach(lnk => {
-        const a = document.createElement('a');
-        try {
-          const p = new URL(lnk.url);
-          if (p.protocol === 'https:' || p.protocol === 'http:') a.href = lnk.url;
-        } catch { /* invalid URL */ }
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.innerHTML = `<span>${lnk.icon}</span><span>${lnk.label}</span>`;
-        el.appendChild(a);
-      });
-      el.style.display = '';
-    }
-  }
-
-  // ── BOM card ─────────────────────────────────────────────────
-  function renderBOM() {
-    const boardsWithShop = boardValue
-      ? (window.BOARDS_CONFIG || []).filter(b => b.id === boardValue)
-      : [];
-    const components = window.COMPONENTS_CONFIG || [];
-
-    const body = document.getElementById('bom-card-body');
-    body.innerHTML = '';
-    if (!boardsWithShop.length && !components.length) {
-      document.getElementById('bom-card').style.display = 'none';
-      return;
-    }
-
-    function safeUrl(u) {
-      if (!u) return null;
-      // Relative paths have no protocol — pass them through as-is (safe by definition)
-      if (!u.includes('://')) return u;
-      // Absolute URLs: only allow http/https
-      try {
-        const p = new URL(u);
-        return (p.protocol === 'https:' || p.protocol === 'http:') ? u : null;
-      } catch { return null; }
-    }
-
-    function makeBomRow(item) {
-      const row = document.createElement('div');
-      row.className = 'bom-row';
-
-      // Thumbnail
-      const validImg = safeUrl(item.image);
-      if (validImg) {
-        const img = document.createElement('img');
-        img.className = 'bom-thumb';
-        img.src = validImg;
-        img.alt = item.name;
-        img.loading = 'lazy';
-        row.appendChild(img);
-      } else {
-        const ph = document.createElement('div');
-        ph.className = 'bom-thumb-placeholder';
-        ph.textContent = item.icon || '📦';
-        row.appendChild(ph);
-      }
-
-      // Info
-      const info = document.createElement('div');
-      info.className = 'bom-info';
-      const nameEl = document.createElement('div');
-      nameEl.className = 'bom-name';
-      nameEl.textContent = item.name;
-      info.appendChild(nameEl);
-      if (item.sku) {
-        const skuEl = document.createElement('div');
-        skuEl.className = 'bom-sku';
-        skuEl.textContent = `SKU: ${item.sku}`;
-        info.appendChild(skuEl);
-      }
-      if (item.description) {
-        const descEl = document.createElement('div');
-        descEl.className = 'bom-desc';
-        descEl.textContent = item.description;
-        info.appendChild(descEl);
-      }
-      row.appendChild(info);
-
-      // Buy link
-      const buyUrl = safeUrl(item.url);
-      if (buyUrl) {
-        const a = document.createElement('a');
-        a.className = 'bom-buy';
-        a.href = buyUrl;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.textContent = 'Buy →';
-        row.appendChild(a);
-      }
-
-      return row;
-    }
-
-    boardsWithShop.forEach(b => body.appendChild(makeBomRow(b)));
-    components.forEach(c => body.appendChild(makeBomRow(c)));
-
-    document.getElementById('bom-card').style.display = '';
   }
 
   // ── Theme toggle ────────────────────────────────────────────
@@ -1151,11 +826,8 @@
 
   renderBoards();
   initBoardSearch();
-  initVariants();
   restoreLastBoard();
   loadAllManifests();
-  renderProjectInfo();
-  renderBOM();
 
   if (window.BRANDING_CONFIG?.length) {
     const brandingEl = document.getElementById('branding-links');
