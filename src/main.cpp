@@ -27,6 +27,12 @@ void checkAndApplyUpdate();
 #endif
 void blinkLed(int times, int delayMs = 200);
 
+// ── Button / LED state ────────────────────────────────────
+#ifdef BUTTON_PIN
+static bool     ledState     = false;
+static uint32_t lastDebounce = 0;
+#endif
+
 // ─────────────────────────────────────────────────────────
 void setup() {
   LOG_BEGIN(SERIAL_BAUD);
@@ -36,6 +42,9 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   blinkLed(3);  // startup indication
+#ifdef BUTTON_PIN
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+#endif
 
 #ifdef FEATURE_WIFI_PROVISIONING
   setupWifi();
@@ -56,6 +65,17 @@ void loop() {
 #ifdef FEATURE_OTA
   // ElegantOTA / ArduinoOTA handler — must be called in loop
   otaLoop();
+#endif
+
+  // Toggle internal LED when button is pressed (debounced)
+#ifdef BUTTON_PIN
+  if (digitalRead(BUTTON_PIN) == (BUTTON_ACTIVE_LOW ? LOW : HIGH)) {
+    if (millis() - lastDebounce > 50) {
+      lastDebounce = millis();
+      ledState = !ledState;
+      digitalWrite(LED_PIN, LED_ACTIVE_LOW ? !ledState : ledState);
+    }
+  }
 #endif
 
   // TODO: add your application logic here

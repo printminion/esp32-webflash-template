@@ -8,6 +8,11 @@
 #define LED_PIN           2
 #define LED_ACTIVE_LOW    false
 
+// Button (built-in BOOT button — active LOW, INPUT_PULLUP; no external wiring needed)
+// Change BUTTON_PIN to any GPIO if you wire an external button instead.
+#define BUTTON_PIN        0
+#define BUTTON_ACTIVE_LOW true
+
 // UART
 #define SERIAL_BAUD       115200
 
