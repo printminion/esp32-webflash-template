@@ -1,6 +1,6 @@
 {
   "name": "esp32-webflash-template",
-  "version": "v0.7.0",
+  "version": "v0.8.0",
   "channel": "release",
   "builds": [
     {
@@ -9,7 +9,7 @@
       "variant": "nowifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.7.0/firmware-seeed_xiao_esp32c3-v0.7.0.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.8.0/firmware-seeed_xiao_esp32c3-v0.8.0.bin",
           "offset": 0
         }
       ]
@@ -20,7 +20,7 @@
       "variant": "wifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.7.0/firmware-seeed_xiao_esp32c3-wifi-v0.7.0.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.8.0/firmware-seeed_xiao_esp32c3-wifi-v0.8.0.bin",
           "offset": 0
         }
       ]
@@ -31,7 +31,7 @@
       "variant": "nowifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.7.0/firmware-seeed_xiao_esp32s3-v0.7.0.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.8.0/firmware-seeed_xiao_esp32s3-v0.8.0.bin",
           "offset": 0
         }
       ]
@@ -42,7 +42,7 @@
       "variant": "wifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.7.0/firmware-seeed_xiao_esp32s3-wifi-v0.7.0.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.8.0/firmware-seeed_xiao_esp32s3-wifi-v0.8.0.bin",
           "offset": 0
         }
       ]
@@ -53,7 +53,7 @@
       "variant": "nowifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.7.0/firmware-seeed_xiao_esp32c6-v0.7.0.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.8.0/firmware-seeed_xiao_esp32c6-v0.8.0.bin",
           "offset": 0
         }
       ]
@@ -64,7 +64,7 @@
       "variant": "wifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.7.0/firmware-seeed_xiao_esp32c6-wifi-v0.7.0.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.8.0/firmware-seeed_xiao_esp32c6-wifi-v0.8.0.bin",
           "offset": 0
         }
       ]
@@ -75,7 +75,7 @@
       "variant": "nowifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.7.0/firmware-generic_esp32-v0.7.0.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.8.0/firmware-generic_esp32-v0.8.0.bin",
           "offset": 0
         }
       ]
@@ -86,7 +86,7 @@
       "variant": "wifi",
       "parts": [
         {
-          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.7.0/firmware-generic_esp32-wifi-v0.7.0.bin",
+          "path": "https://printminion.github.io/esp32-webflash-template/firmware/v0.8.0/firmware-generic_esp32-wifi-v0.8.0.bin",
           "offset": 0
         }
       ]
