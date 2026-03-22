@@ -1,10 +1,10 @@
 // AUTO-GENERATED — do not edit by hand.
 // Re-generate with: python scripts/generate_boards_config.py
 window.BOARDS_CONFIG = [
-  { id: "seeed_xiao_esp32c3", name: "Seeed XIAO ESP32-C3", icon: "🟢", meta: "ESP32-C3 · RISC-V · 4MB Flash", chipFamily: "ESP32-C3" },
-  { id: "seeed_xiao_esp32s3", name: "Seeed XIAO ESP32-S3", icon: "🔵", meta: "ESP32-S3 · Xtensa · 8MB Flash · Camera ready", chipFamily: "ESP32-S3" },
-  { id: "seeed_xiao_esp32c6", name: "Seeed XIAO ESP32-C6", icon: "🟡", meta: "ESP32-C6 · RISC-V · WiFi 6 · Zigbee · Thread", chipFamily: "ESP32-C6" },
-  { id: "generic_esp32", name: "Generic ESP32", icon: "⚪", meta: "ESP32 · Xtensa Dual-core · DevKitC", chipFamily: "ESP32" }
+  { id: "seeed_xiao_esp32c3", name: "Seeed XIAO ESP32-C3", icon: "🟢", meta: "ESP32-C3 · RISC-V · 4MB Flash", chipFamily: "ESP32-C3", sku: "113991054", url: "https://www.seeedstudio.com/Seeed-XIAO-ESP32C3-p-5431.html", image: "assets/boards/seeed_xiao_esp32c3.png" },
+  { id: "seeed_xiao_esp32s3", name: "Seeed XIAO ESP32-S3", icon: "🔵", meta: "ESP32-S3 · Xtensa · 8MB Flash · Camera ready", chipFamily: "ESP32-S3", sku: "113991114", url: "https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html", image: "assets/boards/seeed_xiao_esp32s3.jpg" },
+  { id: "seeed_xiao_esp32c6", name: "Seeed XIAO ESP32-C6", icon: "🟡", meta: "ESP32-C6 · RISC-V · WiFi 6 · Zigbee · Thread", chipFamily: "ESP32-C6", sku: "113991254", url: "https://www.seeedstudio.com/Seeed-Studio-XIAO-ESP32C6-p-5884.html", image: "assets/boards/seeed_xiao_esp32c6.jpg" },
+  { id: "generic_esp32", name: "Generic ESP32", icon: "⚪", meta: "ESP32 · Xtensa Dual-core · DevKitC", chipFamily: "ESP32", sku: null, url: null, image: null }
 ];
 
 window.VARIANTS_CONFIG = [
@@ -22,6 +22,9 @@ window.PROJECT_CONFIG = {
   title:              "ESP32 Web Flasher",
   h1:                 "ESP32 Webflash Template",
   subtitle:           "Select your board, connect via USB and flash directly from your browser — no software required.",
+  description:        "A ready-to-fork ESP32 firmware template with multi-board support, WiFi provisioning, OTA updates, and a browser-based web installer — no software required.",
+  youtubeUrl:         null,
+  howToUrl:           null,
   baseUrl:            "https://printminion.github.io/esp32-webflash-template",
   githubUrl:          "https://github.com/printminion/esp32-webflash-template",
   badgeText:          "Web Installer",
