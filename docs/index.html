@@ -534,7 +534,15 @@
       animation: fadeUp 0.6s 0.2s ease both;
       box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12);
     }
-    .bom-card-body { padding: 1.25rem 1.5rem; }
+    .bom-card-title {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 1rem 1.5rem 0;
+    }
+    .bom-card-body { padding: 1rem 1.5rem 1.25rem; }
 
     .bom-section-label {
       font-family: var(--mono);
@@ -644,7 +652,7 @@
         <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
       </div>
 
-      <div class="field-label" id="variant-label" style="display:none">2. Select variant</div>
+      <div class="field-label" id="variant-label" style="display:none">2. Select firmware</div>
       <div class="channel-toggle" id="variant-toggle" style="display:none"></div>
 
       <div class="field-label-row">
@@ -684,6 +692,7 @@
   </div>
 
   <div id="bom-card" class="bom-card" style="display:none">
+    <div class="bom-card-title">Required Hardware</div>
     <div class="bom-card-body" id="bom-card-body"></div>
   </div>
 
@@ -904,6 +913,7 @@
     radio.closest('.board-option').classList.add('selected');
     try { localStorage.setItem(STORAGE_KEY, boardValue); } catch { /* private mode */ }
     updateInstallButton();
+    renderBOM();
   }
 
   function initBoardSearch() {
@@ -1036,9 +1046,17 @@
 
   // ── BOM card ─────────────────────────────────────────────────
   function renderBOM() {
-    const boardsWithShop = (window.BOARDS_CONFIG || []).filter(b => b.url || b.sku);
-    const components     = window.COMPONENTS_CONFIG || [];
-    if (!boardsWithShop.length && !components.length) return;
+    const boardsWithShop = boardValue
+      ? (window.BOARDS_CONFIG || []).filter(b => b.id === boardValue)
+      : [];
+    const components = window.COMPONENTS_CONFIG || [];
+
+    const body = document.getElementById('bom-card-body');
+    body.innerHTML = '';
+    if (!boardsWithShop.length && !components.length) {
+      document.getElementById('bom-card').style.display = 'none';
+      return;
+    }
 
     function safeUrl(u) {
       if (!u) return null;
@@ -1107,28 +1125,8 @@
       return row;
     }
 
-    const body = document.getElementById('bom-card-body');
-
-    if (boardsWithShop.length) {
-      const lbl = document.createElement('div');
-      lbl.className = 'bom-section-label';
-      lbl.textContent = 'ESP32 Boards';
-      body.appendChild(lbl);
-      boardsWithShop.forEach(b => body.appendChild(makeBomRow(b)));
-    }
-
-    if (components.length) {
-      if (boardsWithShop.length) {
-        const div = document.createElement('div');
-        div.className = 'bom-divider';
-        body.appendChild(div);
-      }
-      const lbl = document.createElement('div');
-      lbl.className = 'bom-section-label';
-      lbl.textContent = 'Components';
-      body.appendChild(lbl);
-      components.forEach(c => body.appendChild(makeBomRow(c)));
-    }
+    boardsWithShop.forEach(b => body.appendChild(makeBomRow(b)));
+    components.forEach(c => body.appendChild(makeBomRow(c)));
 
     document.getElementById('bom-card').style.display = '';
   }
