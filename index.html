@@ -517,8 +517,11 @@
         <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
       </div>
 
+      <div class="field-label" id="variant-label" style="display:none">2. Select variant</div>
+      <div class="channel-toggle" id="variant-toggle" style="display:none"></div>
+
       <div class="field-label-row">
-        <div class="field-label">2. Select board</div>
+        <div class="field-label" id="board-step-label">3. Select board</div>
         <span class="board-count-badge" id="board-count"></span>
       </div>
 
@@ -539,7 +542,7 @@
         Try a different search term.
       </div>
 
-      <div class="field-label" style="margin-top:1rem">3. Connect USB &amp; flash</div>
+      <div class="field-label" style="margin-top:1rem" id="flash-step-label">4. Connect USB &amp; flash</div>
       <div class="flash-wrap">
         <div class="no-board-hint" id="no-board-hint">↑ Pick a board to continue</div>
         <esp-web-install-button id="install-btn" style="display:none">
@@ -587,11 +590,13 @@
     document.getElementById('troubleshoot-link').href = `${cfg.githubUrl}/wiki/Troubleshooting`;
   }
 
-  const STORAGE_KEY = 'webflash_last_board';
+  const STORAGE_KEY  = 'webflash_last_board';
+  const VARIANT_KEY  = 'webflash_last_variant';
 
-  let channel    = 'release';
-  let boardValue = null;
-  let manifest   = null;
+  let channel      = 'release';
+  let variantValue = window.VARIANTS_CONFIG?.[0]?.id || 'nowifi';
+  let boardValue   = null;
+  let manifest     = null;
 
   if (!('serial' in navigator)) {
     document.getElementById('app').classList.add('no-serial');
@@ -647,6 +652,18 @@
     document.getElementById('btn-dev').classList.toggle('active', ch === 'dev');
     document.getElementById('btn-dev').setAttribute('aria-pressed', String(ch === 'dev'));
     loadManifest();
+  }
+
+  window.setVariant = function setVariant(vid) {
+    variantValue = vid;
+    document.querySelectorAll('#variant-toggle .channel-btn').forEach(btn => {
+      const active = btn.dataset.variantId === vid;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+    try { localStorage.setItem(VARIANT_KEY, vid); } catch { /* private mode */ }
+    renderBoards(document.getElementById('board-search')?.value);
+    updateInstallButton();
   }
 
   function renderBoards(filter) {
@@ -723,7 +740,11 @@
 
         const nameDiv = document.createElement('div');
         nameDiv.className = 'board-name';
-        nameDiv.textContent = b.name;
+        const activeVariant   = window.VARIANTS_CONFIG?.find(v => v.id === variantValue);
+        const defaultVariantId = window.VARIANTS_CONFIG?.[0]?.id;
+        nameDiv.textContent = (activeVariant && activeVariant.id !== defaultVariantId)
+          ? `${b.name} (${activeVariant.label})`
+          : b.name;
 
         const metaDiv = document.createElement('div');
         metaDiv.className = 'board-meta';
@@ -758,6 +779,43 @@
     if (input) input.addEventListener('input', () => renderBoards(input.value));
   }
 
+  function initVariants() {
+    const variants = window.VARIANTS_CONFIG;
+    if (!Array.isArray(variants) || variants.length <= 1) {
+      // Single variant (or none defined): hide the step and collapse step numbers.
+      // Still set variantValue to the actual variant id so the manifest lookup works
+      // even if the project ships only a non-standard variant (e.g. only "nowifi").
+      if (variants && variants.length === 1) variantValue = variants[0].id;
+      document.getElementById('board-step-label').textContent = '2. Select board';
+      document.getElementById('flash-step-label').textContent = '3. Connect USB & flash';
+      return;
+    }
+
+    const toggle = document.getElementById('variant-toggle');
+    variants.forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'channel-btn' + (v.id === variantValue ? ' active' : '');
+      btn.dataset.variantId = v.id;
+      btn.setAttribute('aria-pressed', String(v.id === variantValue));
+      btn.title = v.description || '';
+      btn.textContent = v.label;
+      btn.addEventListener('click', () => setVariant(v.id));
+      toggle.appendChild(btn);
+    });
+
+    document.getElementById('variant-label').style.display = '';
+    toggle.style.display = '';
+
+    // Restore last-used variant
+    try {
+      const saved = localStorage.getItem(VARIANT_KEY);
+      if (saved && variants.find(v => v.id === saved)) {
+        variantValue = saved;
+        setVariant(saved);
+      }
+    } catch { /* localStorage unavailable */ }
+  }
+
   function restoreLastBoard() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -787,7 +845,11 @@
     }
 
     const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
-    const build = manifest.builds?.find(b => b.board === board?.name);
+    const defaultVariant = window.VARIANTS_CONFIG?.[0]?.id || 'standard';
+    const selectedVariant = variantValue || defaultVariant;
+    const build = manifest.builds?.find(b =>
+      b.board === board?.name && (b.variant || 'standard') === selectedVariant
+    );
     if (!build) {
       if (btn._blobUrl) { URL.revokeObjectURL(btn._blobUrl); btn._blobUrl = null; }
       hint.textContent   = 'Firmware not found for this board in manifest.';
@@ -826,6 +888,7 @@
 
   renderBoards();
   initBoardSearch();
+  initVariants();
   restoreLastBoard();
   loadAllManifests();
 

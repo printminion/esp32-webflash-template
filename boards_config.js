@@ -7,6 +7,11 @@ window.BOARDS_CONFIG = [
   { id: "generic_esp32", name: "Generic ESP32", icon: "⚪", meta: "ESP32 · Xtensa Dual-core · DevKitC", chipFamily: "ESP32" }
 ];
 
+window.VARIANTS_CONFIG = [
+  { id: "nowifi", label: "No WiFi", description: "Minimal build — no WiFi provisioning or OTA" },
+  { id: "wifi", label: "WiFi", description: "WiFi provisioning + OTA updates" }
+];
+
 window.BRANDING_CONFIG = [
   { icon: "🐦", label: "@printminion", url: "https://x.com/printminion" },
   { icon: "🖨️", label: "3D Enclosures on Cults3D", url: "https://cults3d.com/@printminion" },
