@@ -1,0 +1,116 @@
+{
+  "$schema": "./schemas/project.schema.json",
+  "project": {
+    "name": "esp32-webflash-template",
+    "description": "Multi-board ESP32 firmware template with browser-based web installer"
+  },
+  "installer": {
+    "title": "ESP32 Web Flasher",
+    "h1": "ESP32 Webflash Template",
+    "subtitle": "Select your board, connect via USB and flash directly from your browser — no software required.",
+    "description": "A ready-to-fork ESP32 firmware template with multi-board support, WiFi provisioning, OTA updates, and a browser-based web installer — no software required.",
+    "youtubeUrl": "",
+    "howToUrl": "",
+    "baseUrl": "https://printminion.github.io/esp32-webflash-template",
+    "githubUrl": "https://github.com/printminion/esp32-webflash-template",
+    "badgeText": "Web Installer"
+  },
+  "lib_deps": [],
+  "boards": [
+    {
+      "id": "seeed_xiao_esp32c3",
+      "name": "Seeed XIAO ESP32-C3",
+      "chip": "esp32c3",
+      "chipFamily": "ESP32-C3",
+      "bootloaderOffset": "0x0",
+      "platform": "espressif32",
+      "platformioBoard": "seeed_xiao_esp32c3",
+      "buildFlag": "BOARD_SEEED_XIAO_ESP32C3",
+      "partitionsFile": null,
+      "requiresUv": false,
+      "icon": "🟢",
+      "meta": "ESP32-C3 · RISC-V · 4MB Flash",
+      "sku": "113991054",
+      "url": "https://www.seeedstudio.com/Seeed-XIAO-ESP32C3-p-5431.html",
+      "image": "assets/boards/seeed_xiao_esp32c3.png"
+    },
+    {
+      "id": "seeed_xiao_esp32s3",
+      "name": "Seeed XIAO ESP32-S3",
+      "chip": "esp32s3",
+      "chipFamily": "ESP32-S3",
+      "bootloaderOffset": "0x0",
+      "platform": "espressif32",
+      "platformioBoard": "seeed_xiao_esp32s3",
+      "buildFlag": "BOARD_SEEED_XIAO_ESP32S3",
+      "partitionsFile": "partitions_esp32s3_8mb.csv",
+      "requiresUv": false,
+      "icon": "🔵",
+      "meta": "ESP32-S3 · Xtensa · 8MB Flash · Camera ready",
+      "sku": "113991114",
+      "url": "https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html",
+      "image": "assets/boards/seeed_xiao_esp32s3.jpg"
+    },
+    {
+      "id": "seeed_xiao_esp32c6",
+      "name": "Seeed XIAO ESP32-C6",
+      "chip": "esp32c6",
+      "chipFamily": "ESP32-C6",
+      "bootloaderOffset": "0x0",
+      "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.37/platform-espressif32.zip",
+      "platformioBoard": "seeed_xiao_esp32c6",
+      "buildFlag": "BOARD_SEEED_XIAO_ESP32C6",
+      "partitionsFile": "min_spiffs.csv",
+      "requiresUv": true,
+      "icon": "🟡",
+      "meta": "ESP32-C6 · RISC-V · WiFi 6 · Zigbee · Thread",
+      "sku": "113991254",
+      "url": "https://www.seeedstudio.com/Seeed-Studio-XIAO-ESP32C6-p-5884.html",
+      "image": "assets/boards/seeed_xiao_esp32c6.jpg"
+    },
+    {
+      "id": "generic_esp32",
+      "name": "Generic ESP32",
+      "chip": "esp32",
+      "chipFamily": "ESP32",
+      "bootloaderOffset": "0x1000",
+      "platform": "espressif32",
+      "platformioBoard": "esp32dev",
+      "buildFlag": "BOARD_GENERIC_ESP32",
+      "partitionsFile": null,
+      "requiresUv": false,
+      "icon": "⚪",
+      "meta": "ESP32 · Xtensa Dual-core · DevKitC",
+      "sku": "",
+      "url": "",
+      "image": ""
+    }
+  ],
+  "firmwareVariants": [
+    {
+      "id": "nowifi",
+      "label": "No WiFi",
+      "description": "Minimal build — no WiFi provisioning or OTA",
+      "buildFlags": ["-D VARIANT_NO_WIFI"],
+      "requiresWifi": false
+    },
+    {
+      "id": "wifi",
+      "label": "WiFi",
+      "description": "WiFi provisioning + OTA updates",
+      "buildFlags": [],
+      "requiresWifi": true
+    }
+  ],
+  "components": [
+    {
+      "name": "Push Button",
+      "description": "Tactile momentary push button — connect between BUTTON_PIN and GND"
+    }
+  ],
+  "branding": [
+    { "icon": "🐦", "label": "@printminion", "url": "https://x.com/printminion" },
+    { "icon": "🖨️", "label": "3D Enclosures on Cults3D", "url": "https://cults3d.com/@printminion" },
+    { "icon": "☕", "label": "Buy Me a Coffee", "url": "https://buymeacoffee.com/printminion" }
+  ]
+}

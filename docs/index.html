@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>ESP32 Web Flasher</title>
+  <script type="module"
+    src="https://unpkg.com/esp-web-tools@10.2.1/dist/web/install-button.js?module"
+    integrity="sha384-2Ea4WL8tjFb0qQKUqBoX45KlPVoUgL+Z3zUqsD0MHmtJ3faDbfNyZulLg/LfYDUZ"
+    crossorigin="anonymous"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0e17;
+      --surface:   #111827;
+      --border:    #1f2d45;
+      --accent:    #00d4ff;
+      --accent2:   #7c3aed;
+      --success:   #10b981;
+      --warning:   #f59e0b;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Outfit', sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg:      #f0f4f8;
+      --surface: #ffffff;
+      --border:  #cbd5e1;
+      --accent:  #0284c7;
+      --accent2: #7c3aed;
+      --text:    #0f172a;
+      --muted:   #64748b;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      transition: opacity 0.3s;
+    }
+    html[data-theme="light"] body::after { opacity: 0; }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1.5rem 3rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    h1 {
+      font-size: clamp(1.4rem, 3vw, 1.9rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      white-space: nowrap;
+      background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      animation: fadeUp 0.6s 0.15s ease both;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12);
+    }
+
+    .card-body { padding: 1.75rem 1.5rem; }
+
+    .channel-toggle {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+      background: rgba(0,0,0,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .channel-btn {
+      flex: 1;
+      padding: 0.5rem;
+      background: transparent;
+      border: none;
+      border-radius: 7px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .channel-btn.active {
+      background: rgba(0,212,255,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(0,212,255,0.2);
+    }
+
+    .field-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .board-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .board-option {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.9rem 1rem;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .board-option:hover {
+      border-color: rgba(0,212,255,0.3);
+      background: rgba(0,212,255,0.04);
+    }
+
+    .board-option.selected {
+      border-color: var(--accent);
+      background: rgba(0,212,255,0.07);
+      box-shadow: 0 0 0 1px rgba(0,212,255,0.15);
+    }
+
+    /* Visually hidden but accessible — keeps inputs in the a11y tree so
+       keyboard users and screen readers can interact with board selection. */
+    .board-option input[type="radio"] {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Visible focus ring for keyboard navigation */
+    .board-option:focus-within {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .board-icon {
+      width: 36px; height: 36px;
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .board-info { flex: 1; }
+
+    .board-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin-bottom: 0.1rem;
+    }
+
+    .board-meta {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .board-check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .board-option.selected .board-check {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(0,212,255,0.4);
+    }
+
+    .flash-wrap { margin-top: 0.25rem; }
+
+    .troubleshoot-hint {
+      margin-top: 0.6rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .troubleshoot-hint a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .troubleshoot-hint a:hover { text-decoration: underline; }
+
+    esp-web-install-button { display: block; width: 100%; }
+
+    .flash-btn {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 4px 24px rgba(0,212,255,0.25), 0 1px 4px rgba(0,0,0,0.2);
+      transition: box-shadow 0.2s, transform 0.15s, filter 0.2s;
+    }
+    .flash-btn:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 6px 32px rgba(0,212,255,0.4), 0 2px 8px rgba(0,0,0,0.2);
+      transform: translateY(-1px);
+    }
+    .flash-btn:active {
+      transform: translateY(0) scale(0.98);
+      filter: brightness(0.95);
+    }
+
+    .no-board-hint {
+      width: 100%;
+      padding: 0.875rem;
+      background: rgba(0,0,0,0.03);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+      font-family: var(--mono);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 0.75rem;
+      right: 0.75rem;
+      z-index: 10;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    /* Sun shown in dark mode → warm light background */
+    [data-theme="dark"] .theme-toggle {
+      background: #fefce8;
+      border-color: #fde68a;
+      color: #a16207;
+    }
+    [data-theme="dark"] .theme-toggle:hover {
+      background: #fef08a;
+      border-color: #facc15;
+    }
+    /* Moon shown in light mode → dark night background */
+    [data-theme="light"] .theme-toggle {
+      background: #0f172a;
+      border-color: #1e3a5f;
+      color: #94a3b8;
+    }
+    [data-theme="light"] .theme-toggle:hover {
+      border-color: #3b82f6;
+      color: #cbd5e1;
+    }
+
+    .branding-links {
+      margin-top: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .branding-links a { color: var(--muted); text-decoration: none; }
+    .branding-links a:hover { color: var(--accent); }
+
+    footer {
+      margin-top: 2.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .browser-warn {
+      display: none;
+      width: 100%;
+      max-width: 560px;
+      padding: 1rem 1.25rem;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 10px;
+      color: var(--warning);
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .no-serial .browser-warn { display: block; }
+    .no-serial .card { opacity: 0.5; pointer-events: none; }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    /* ── Board search ──────────────────────────────────────── */
+    .board-search-wrap {
+      position: relative;
+      margin-bottom: 0.75rem;
+    }
+    .board-search {
+      width: 100%;
+      padding: 0.6rem 0.9rem 0.6rem 2.4rem;
+      background: rgba(0,0,0,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .board-search::placeholder { color: var(--muted); }
+    .board-search:focus {
+      border-color: rgba(0,212,255,0.4);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+    }
+    .board-search-wrap::before {
+      content: '⌕';
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    /* ── Field label row with count badge ─────────────────── */
+    .field-label-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .field-label-row .field-label { margin-bottom: 0; }
+    .board-count-badge {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2);
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    /* ── Chip-family group sections ───────────────────────── */
+    .board-group { margin-bottom: 0.5rem; }
+    .board-group[open] { margin-bottom: 0.75rem; }
+    .board-group-summary {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 7px;
+      background: rgba(124,58,237,0.07);
+      border: 1px solid rgba(124,58,237,0.18);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+    .board-group-summary::-webkit-details-marker { display: none; }
+    .board-group-summary::after {
+      content: '›';
+      margin-left: auto;
+      transition: transform 0.2s;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+    .board-group[open] .board-group-summary::after { transform: rotate(90deg); }
+    .board-group-summary:hover {
+      border-color: rgba(124,58,237,0.35);
+      color: var(--text);
+    }
+    .group-count {
+      background: rgba(124,58,237,0.18);
+      border-radius: 999px;
+      padding: 0 0.4rem;
+      font-size: 0.62rem;
+      color: #a78bfa;
+    }
+    .board-group-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-top: 0.5rem;
+      padding-left: 0.5rem;
+    }
+
+    /* ── No-results message ───────────────────────────────── */
+    .no-results-msg {
+      display: none;
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+    .no-results-msg strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.85rem;
+    }
+
+    /* ── Project description & links ─────────────────────── */
+    .project-description {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      max-width: 560px;
+      margin: 0.35rem 0 0;
+      line-height: 1.5;
+    }
+
+    .project-links {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+    }
+    .project-links a {
+      color: var(--muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      transition: color 0.2s;
+    }
+    .project-links a:hover { color: var(--accent); }
+
+    /* ── BOM card ─────────────────────────────────────────── */
+    .bom-card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 1.25rem;
+      animation: fadeUp 0.6s 0.2s ease both;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .bom-card-title {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 1rem 1.5rem 0;
+    }
+    .bom-card-body { padding: 1rem 1.5rem 1.25rem; }
+
+    .bom-section-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .bom-section-label + .bom-section-label,
+    .bom-divider {
+      margin-top: 1rem;
+    }
+
+    .bom-row {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .bom-row:last-child { border-bottom: none; }
+
+    .bom-thumb {
+      width: 52px; height: 52px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      object-fit: cover;
+      flex-shrink: 0;
+      background: rgba(0,0,0,0.04);
+    }
+    .bom-thumb-placeholder {
+      width: 52px; height: 52px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      background: rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .bom-info { flex: 1; min-width: 0; }
+    .bom-name {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bom-sku {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 0.1rem;
+    }
+    .bom-desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bom-buy {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      text-decoration: none;
+      white-space: nowrap;
+      border: 1px solid rgba(0,212,255,0.25);
+      border-radius: 6px;
+      padding: 0.25rem 0.6rem;
+      transition: background 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .bom-buy:hover {
+      background: rgba(0,212,255,0.08);
+      border-color: rgba(0,212,255,0.5);
+    }
+  </style>
+</head>
+<body>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark theme">☀️</button>
+<div class="wrap" id="app">
+
+  <header>
+    <h1 id="page-h1">ESP32 Webflash Template</h1>
+    <p id="project-description" class="project-description" style="display:none"></p>
+    <div id="project-links" class="project-links" style="display:none"></div>
+    <p id="branding-links" class="branding-links"></p>
+  </header>
+
+  <div class="browser-warn">
+    ⚠ WebSerial is not supported in this browser. Please use <strong>Chrome</strong> or <strong>Edge</strong> on desktop.
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+
+      <div class="field-label">1. Select channel</div>
+      <div class="channel-toggle">
+        <button class="channel-btn active" id="btn-release" onclick="setChannel('release')" aria-pressed="true">⬟ Release</button>
+        <button class="channel-btn" id="btn-dev" onclick="setChannel('dev')" aria-pressed="false">⬡ Dev</button>
+      </div>
+
+      <div class="field-label" id="variant-label" style="display:none">2. Select firmware</div>
+      <div class="channel-toggle" id="variant-toggle" style="display:none"></div>
+
+      <div class="field-label-row">
+        <div class="field-label" id="board-step-label">3. Select board</div>
+        <span class="board-count-badge" id="board-count"></span>
+      </div>
+
+      <div class="board-search-wrap">
+        <input
+          class="board-search"
+          id="board-search"
+          type="search"
+          placeholder="Search boards…"
+          autocomplete="off"
+          aria-label="Search boards"
+        />
+      </div>
+
+      <div class="board-list" id="board-list"></div>
+      <div class="no-results-msg" id="no-results-msg">
+        <strong>No boards found</strong>
+        Try a different search term.
+      </div>
+
+      <div class="field-label" style="margin-top:1rem" id="flash-step-label">4. Connect USB &amp; flash</div>
+      <div class="flash-wrap">
+        <div class="no-board-hint" id="no-board-hint">↑ Pick a board to continue</div>
+        <esp-web-install-button id="install-btn" style="display:none">
+          <button slot="activate" class="flash-btn">⚡ Connect &amp; Flash</button>
+        </esp-web-install-button>
+        <div class="troubleshoot-hint">
+          Device not detected? <a id="troubleshoot-link" href="https://github.com/printminion/esp32-webflash-template/wiki/Troubleshooting" target="_blank" rel="noopener noreferrer">Troubleshooting guide →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="bom-card" class="bom-card" style="display:none">
+    <div class="bom-card-title">Required Hardware</div>
+    <div class="bom-card-body" id="bom-card-body"></div>
+  </div>
+
+  <footer>
+    <p>
+      Open source ·
+      <a id="github-link" href="https://github.com/printminion/esp32-webflash-template" target="_blank" rel="noopener noreferrer">GitHub</a> ·
+      Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank" rel="noopener noreferrer">ESP Web Tools</a>
+    </p>
+  </footer>
+
+</div>
+<script>
+(async () => {
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'boards_config.js?cb=' + Date.now();
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  if (window.PROJECT_CONFIG) document.title = window.PROJECT_CONFIG.title;
+
+  const cfg  = window.PROJECT_CONFIG || {};
+  const BASE = (cfg.baseUrl || 'https://printminion.github.io/esp32-webflash-template').replace(/\/+$/, '');
+  if (cfg.h1) {
+    const h1 = document.getElementById('page-h1');
+    h1.innerHTML = '';
+    cfg.h1.split('<br>').forEach((part, i, arr) => {
+      h1.appendChild(document.createTextNode(part));
+      if (i < arr.length - 1) h1.appendChild(document.createElement('br'));
+    });
+  }
+  if (cfg.githubUrl) {
+    document.getElementById('github-link').href = cfg.githubUrl;
+    const howTo = cfg.howToUrl || `${cfg.githubUrl}/wiki/Troubleshooting`;
+    document.getElementById('troubleshoot-link').href = howTo;
+  }
+
+  const STORAGE_KEY  = 'webflash_last_board';
+  const VARIANT_KEY  = 'webflash_last_variant';
+
+  let channel      = 'release';
+  let variantValue = window.VARIANTS_CONFIG?.[0]?.id || 'nowifi';
+  let boardValue   = null;
+  let manifest     = null;
+
+  if (!('serial' in navigator)) {
+    document.getElementById('app').classList.add('no-serial');
+  }
+
+  async function fetchManifestFor(ch) {
+    const bust = `?cb=${Date.now()}`;
+    const url = ch === 'release'
+      ? `${BASE}/manifest.json${bust}`
+      : `${BASE}/dev/manifest.json${bust}`;
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      if (!Array.isArray(data.builds) || !data.version) throw new Error('invalid manifest');
+      const ver = /^\d/.test(data.version) ? `v${data.version}` : data.version;
+      const sha = data.sha || data.commit;
+      const label = sha ? `${ver} · ${sha.slice(0, 7)}` : ver;
+      document.getElementById(ch === 'release' ? 'btn-release' : 'btn-dev')
+        .dataset.version = label;
+      updateChannelLabels();
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  async function loadManifest() {
+    manifest = await fetchManifestFor(channel);
+    updateInstallButton();
+  }
+
+  async function loadAllManifests() {
+    const [rel, dev] = await Promise.all([
+      fetchManifestFor('release'),
+      fetchManifestFor('dev'),
+    ]);
+    manifest = channel === 'release' ? rel : dev;
+    updateInstallButton();
+  }
+
+  function updateChannelLabels() {
+    const relVer = document.getElementById('btn-release').dataset.version;
+    const devVer = document.getElementById('btn-dev').dataset.version;
+    document.getElementById('btn-release').textContent = relVer ? `⬟ Release · ${relVer}` : '⬟ Release';
+    document.getElementById('btn-dev').textContent     = devVer ? `⬡ Dev · ${devVer}`     : '⬡ Dev';
+  }
+
+  window.setChannel = function setChannel(ch) {
+    channel = ch;
+    document.getElementById('btn-release').classList.toggle('active', ch === 'release');
+    document.getElementById('btn-release').setAttribute('aria-pressed', String(ch === 'release'));
+    document.getElementById('btn-dev').classList.toggle('active', ch === 'dev');
+    document.getElementById('btn-dev').setAttribute('aria-pressed', String(ch === 'dev'));
+    loadManifest();
+  }
+
+  window.setVariant = function setVariant(vid) {
+    variantValue = vid;
+    document.querySelectorAll('#variant-toggle .channel-btn').forEach(btn => {
+      const active = btn.dataset.variantId === vid;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+    try { localStorage.setItem(VARIANT_KEY, vid); } catch { /* private mode */ }
+    renderBoards(document.getElementById('board-search')?.value);
+    updateInstallButton();
+  }
+
+  function renderBoards(filter) {
+    const list  = document.getElementById('board-list');
+    const noRes = document.getElementById('no-results-msg');
+    const badge = document.getElementById('board-count');
+    const term  = (filter || '').trim().toLowerCase();
+
+    if (!Array.isArray(window.BOARDS_CONFIG) || window.BOARDS_CONFIG.length === 0) {
+      list.innerHTML = '<div class="no-board-hint">Board configuration failed to load. Please refresh the page.</div>';
+      return;
+    }
+
+    // Snapshot open groups to preserve collapse state across re-renders
+    const openGroups = new Set(
+      [...list.querySelectorAll('details[data-family][open]')].map(d => d.dataset.family)
+    );
+
+    const terms = term.split(/\s+/).filter(Boolean);
+    const filtered = terms.length
+      ? window.BOARDS_CONFIG.filter(b => {
+          const hay = `${b.name} ${b.meta} ${b.chipFamily || ''}`.toLowerCase();
+          return terms.every(t => hay.includes(t));
+        })
+      : window.BOARDS_CONFIG;
+
+    if (badge) badge.textContent = `${filtered.length} board${filtered.length !== 1 ? 's' : ''}`;
+
+    list.innerHTML = '';
+    if (filtered.length === 0) {
+      if (noRes) noRes.style.display = 'block';
+      return;
+    }
+    if (noRes) noRes.style.display = 'none';
+
+    // Group by chipFamily, preserving BOARDS_CONFIG insertion order
+    const groups = new Map();
+    filtered.forEach(b => {
+      const fam = b.chipFamily || 'Other';
+      if (!groups.has(fam)) groups.set(fam, []);
+      groups.get(fam).push(b);
+    });
+
+    const singleGroup = groups.size === 1;
+
+    groups.forEach((boards, family) => {
+      const details = document.createElement('details');
+      details.className = 'board-group';
+      details.dataset.family = family;
+      if (singleGroup || openGroups.has(family) || !term) details.open = true;
+
+      const summary = document.createElement('summary');
+      summary.className = 'board-group-summary';
+      summary.innerHTML = `${family} <span class="group-count">${boards.length}</span>`;
+      details.appendChild(summary);
+
+      const body = document.createElement('div');
+      body.className = 'board-group-body';
+
+      boards.forEach(b => {
+        const label = document.createElement('label');
+        label.className = 'board-option';
+        label.id = `opt-${b.id}`;
+        if (b.id === boardValue) label.classList.add('selected');
+
+        const input = document.createElement('input');
+        input.type = 'radio'; input.name = 'board'; input.value = b.id;
+        if (b.id === boardValue) input.checked = true;
+        input.addEventListener('change', () => selectBoard(input));
+
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'board-icon';
+        iconDiv.textContent = b.icon;
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'board-name';
+        const activeVariant   = window.VARIANTS_CONFIG?.find(v => v.id === variantValue);
+        const defaultVariantId = window.VARIANTS_CONFIG?.[0]?.id;
+        nameDiv.textContent = (activeVariant && activeVariant.id !== defaultVariantId)
+          ? `${b.name} (${activeVariant.label})`
+          : b.name;
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'board-meta';
+        metaDiv.textContent = b.meta;
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'board-info';
+        infoDiv.append(nameDiv, metaDiv);
+
+        const checkDiv = document.createElement('div');
+        checkDiv.className = 'board-check';
+
+        label.append(input, iconDiv, infoDiv, checkDiv);
+        body.appendChild(label);
+      });
+
+      details.appendChild(body);
+      list.appendChild(details);
+    });
+  }
+
+  function selectBoard(radio) {
+    boardValue = radio.value;
+    document.querySelectorAll('.board-option').forEach(el => el.classList.remove('selected'));
+    radio.closest('.board-option').classList.add('selected');
+    try { localStorage.setItem(STORAGE_KEY, boardValue); } catch { /* private mode */ }
+    updateInstallButton();
+    renderBOM();
+  }
+
+  function initBoardSearch() {
+    const input = document.getElementById('board-search');
+    if (input) input.addEventListener('input', () => renderBoards(input.value));
+  }
+
+  function initVariants() {
+    const variants = window.VARIANTS_CONFIG;
+    if (!Array.isArray(variants) || variants.length <= 1) {
+      // Single variant (or none defined): hide the step and collapse step numbers.
+      // Still set variantValue to the actual variant id so the manifest lookup works
+      // even if the project ships only a non-standard variant (e.g. only "nowifi").
+      if (variants && variants.length === 1) variantValue = variants[0].id;
+      document.getElementById('board-step-label').textContent = '2. Select board';
+      document.getElementById('flash-step-label').textContent = '3. Connect USB & flash';
+      return;
+    }
+
+    const toggle = document.getElementById('variant-toggle');
+    variants.forEach(v => {
+      const btn = document.createElement('button');
+      btn.className = 'channel-btn' + (v.id === variantValue ? ' active' : '');
+      btn.dataset.variantId = v.id;
+      btn.setAttribute('aria-pressed', String(v.id === variantValue));
+      btn.title = v.description || '';
+      btn.textContent = v.label;
+      btn.addEventListener('click', () => setVariant(v.id));
+      toggle.appendChild(btn);
+    });
+
+    document.getElementById('variant-label').style.display = '';
+    toggle.style.display = '';
+
+    // Restore last-used variant
+    try {
+      const saved = localStorage.getItem(VARIANT_KEY);
+      if (saved && variants.find(v => v.id === saved)) {
+        variantValue = saved;
+        setVariant(saved);
+      }
+    } catch { /* localStorage unavailable */ }
+  }
+
+  function restoreLastBoard() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      const board = window.BOARDS_CONFIG?.find(b => b.id === saved);
+      if (!board) return;
+      boardValue = saved;
+      renderBoards();
+      const radio = document.querySelector(`input[name="board"][value="${saved}"]`);
+      if (radio) radio.checked = true;
+      updateInstallButton();
+    } catch { /* localStorage unavailable */ }
+  }
+
+  function updateInstallButton() {
+    const hint = document.getElementById('no-board-hint');
+    const btn  = document.getElementById('install-btn');
+
+    if (!boardValue || !manifest) {
+      if (btn._blobUrl) { URL.revokeObjectURL(btn._blobUrl); btn._blobUrl = null; }
+      hint.textContent   = boardValue && !manifest
+        ? 'Firmware manifest unavailable — check connection and refresh.'
+        : '↑ Pick a board to continue';
+      hint.style.display = 'block';
+      btn.style.display  = 'none';
+      return;
+    }
+
+    const board = window.BOARDS_CONFIG.find(b => b.id === boardValue);
+    const defaultVariant = window.VARIANTS_CONFIG?.[0]?.id || 'standard';
+    const selectedVariant = variantValue || defaultVariant;
+    const build = manifest.builds?.find(b =>
+      b.board === board?.name && (b.variant || 'standard') === selectedVariant
+    );
+    if (!build) {
+      if (btn._blobUrl) { URL.revokeObjectURL(btn._blobUrl); btn._blobUrl = null; }
+      hint.textContent   = 'Firmware not found for this board in manifest.';
+      hint.style.display = 'block';
+      btn.style.display  = 'none';
+      return;
+    }
+
+    const singleManifest = { name: manifest.name, version: manifest.version, builds: [build] };
+    const blob    = new Blob([JSON.stringify(singleManifest)], { type: 'application/json' });
+    if (btn._blobUrl) URL.revokeObjectURL(btn._blobUrl);
+    btn._blobUrl = URL.createObjectURL(blob);
+
+    btn.setAttribute('manifest', btn._blobUrl);
+    hint.style.display = 'none';
+    btn.style.display  = 'block';
+  }
+
+  // ── Project description & links ─────────────────────────────
+  function renderProjectInfo() {
+    const c = window.PROJECT_CONFIG;
+    if (!c) return;
+
+    if (c.description) {
+      const el = document.getElementById('project-description');
+      el.textContent = c.description;
+      el.style.display = '';
+    }
+
+    const links = [];
+    if (c.githubUrl)  links.push({ icon: '🐙', label: 'GitHub',       url: c.githubUrl });
+    if (c.youtubeUrl) links.push({ icon: '▶️',  label: 'Demo',         url: c.youtubeUrl });
+    const howToUrl = c.howToUrl || (c.githubUrl ? `${c.githubUrl}/wiki/Troubleshooting` : '');
+    if (howToUrl)     links.push({ icon: '📖', label: 'How to flash', url: howToUrl });
+
+    if (links.length) {
+      const el = document.getElementById('project-links');
+      links.forEach(lnk => {
+        const a = document.createElement('a');
+        try {
+          const p = new URL(lnk.url);
+          if (p.protocol === 'https:' || p.protocol === 'http:') a.href = lnk.url;
+        } catch { /* invalid URL */ }
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.innerHTML = `<span>${lnk.icon}</span><span>${lnk.label}</span>`;
+        el.appendChild(a);
+      });
+      el.style.display = '';
+    }
+  }
+
+  // ── BOM card ─────────────────────────────────────────────────
+  function renderBOM() {
+    const boardsWithShop = boardValue
+      ? (window.BOARDS_CONFIG || []).filter(b => b.id === boardValue)
+      : [];
+    const components = window.COMPONENTS_CONFIG || [];
+
+    const body = document.getElementById('bom-card-body');
+    body.innerHTML = '';
+    if (!boardsWithShop.length && !components.length) {
+      document.getElementById('bom-card').style.display = 'none';
+      return;
+    }
+
+    function safeUrl(u) {
+      if (!u) return null;
+      // Relative paths have no protocol — pass them through as-is (safe by definition)
+      if (!u.includes('://')) return u;
+      // Absolute URLs: only allow http/https
+      try {
+        const p = new URL(u);
+        return (p.protocol === 'https:' || p.protocol === 'http:') ? u : null;
+      } catch { return null; }
+    }
+
+    function makeBomRow(item) {
+      const row = document.createElement('div');
+      row.className = 'bom-row';
+
+      // Thumbnail
+      const validImg = safeUrl(item.image);
+      if (validImg) {
+        const img = document.createElement('img');
+        img.className = 'bom-thumb';
+        img.src = validImg;
+        img.alt = item.name;
+        img.loading = 'lazy';
+        row.appendChild(img);
+      } else {
+        const ph = document.createElement('div');
+        ph.className = 'bom-thumb-placeholder';
+        ph.textContent = item.icon || '📦';
+        row.appendChild(ph);
+      }
+
+      // Info
+      const info = document.createElement('div');
+      info.className = 'bom-info';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'bom-name';
+      nameEl.textContent = item.name;
+      info.appendChild(nameEl);
+      if (item.sku) {
+        const skuEl = document.createElement('div');
+        skuEl.className = 'bom-sku';
+        skuEl.textContent = `SKU: ${item.sku}`;
+        info.appendChild(skuEl);
+      }
+      if (item.description) {
+        const descEl = document.createElement('div');
+        descEl.className = 'bom-desc';
+        descEl.textContent = item.description;
+        info.appendChild(descEl);
+      }
+      row.appendChild(info);
+
+      // Buy link
+      const buyUrl = safeUrl(item.url);
+      if (buyUrl) {
+        const a = document.createElement('a');
+        a.className = 'bom-buy';
+        a.href = buyUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = 'Buy →';
+        row.appendChild(a);
+      }
+
+      return row;
+    }
+
+    boardsWithShop.forEach(b => body.appendChild(makeBomRow(b)));
+    components.forEach(c => body.appendChild(makeBomRow(c)));
+
+    document.getElementById('bom-card').style.display = '';
+  }
+
+  // ── Theme toggle ────────────────────────────────────────────
+  const THEME_KEY = 'webflash_theme';
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    document.getElementById('theme-toggle').textContent = theme === 'light' ? '🌙' : '☀️';
+  }
+  function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    const preferred = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    applyTheme(preferred);
+  }
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode */ }
+  });
+  initTheme();
+
+  renderBoards();
+  initBoardSearch();
+  initVariants();
+  restoreLastBoard();
+  loadAllManifests();
+  renderProjectInfo();
+  renderBOM();
+
+  if (window.BRANDING_CONFIG?.length) {
+    const brandingEl = document.getElementById('branding-links');
+    window.BRANDING_CONFIG.forEach((b, i) => {
+      if (i > 0) brandingEl.appendChild(document.createTextNode(' · '));
+      const a = document.createElement('a');
+      try {
+        const parsed = new URL(b.url);
+        if (parsed.protocol === 'https:' || parsed.protocol === 'http:') a.href = b.url;
+      } catch { /* invalid URL — leave href unset */ }
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = `${b.icon} ${b.label}`;
+      brandingEl.appendChild(a);
+    });
+  }
+})();
+</script>
+</body>
+</html>

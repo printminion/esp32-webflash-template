@@ -1,0 +1,137 @@
+# ============================================================
+# dev.yml
+# Triggered on pushes to the dev branch.
+# Builds all release environments, deploys binaries and an
+# updated manifest to the dev/ channel on GitHub Pages.
+# ============================================================
+
+name: Dev build
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  setup:
+    name: Read board matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.read.outputs.matrix }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Build matrix from project.json
+        id: read
+        run: |
+          matrix=$(jq -c '[
+            .boards[] as $b |
+            ((.firmwareVariants // [{id:"nowifi"}]) | to_entries[]) as $fve |
+            {
+              environment:       (if $fve.key == 0 then $b.id else ($b.id + "-" + $fve.value.id) end),
+              chip:              $b.chip,
+              bootloader_offset: $b.bootloaderOffset,
+              requires_uv:       $b.requiresUv
+            }
+          ]' project.json)
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+      - name: Compute version string
+        id: version
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "version=dev-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build firmware
+    needs: setup
+    uses: ./.github/workflows/_build-firmware.yml
+    with:
+      matrix: ${{ needs.setup.outputs.matrix }}
+      version: ${{ needs.setup.outputs.version }}
+      wifi_strict: false
+      wifi_allow_open_release: ''
+      artifact_retention_days: 3
+    secrets:
+      WIFI_AP_PASSWORD: ${{ secrets.WIFI_AP_PASSWORD }}
+      OTA_USERNAME: ${{ secrets.OTA_USERNAME }}
+      OTA_PASSWORD: ${{ secrets.OTA_PASSWORD }}
+
+  deploy:
+    name: Deploy dev channel
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4.2.0
+        with:
+          path: firmware
+          merge-multiple: true
+
+      - name: List firmware files
+        run: ls -lh firmware/
+
+      - name: Generate dev manifest and copy firmware
+        run: |
+          VERSION="${{ needs.setup.outputs.version }}"
+          PROJECT_NAME=$(jq -r '.project.name' project.json)
+          BASE_URL="$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)/dev"
+          mkdir -p docs/dev
+
+          BUILDS=$(jq -c --arg bu "$BASE_URL" --arg v "$VERSION" '
+            [
+              .boards[] as $b |
+              ((.firmwareVariants // [{id:"nowifi"}]) | to_entries[]) as $fve |
+              {
+                chipFamily: $b.chipFamily,
+                board:      $b.name,
+                variant:    $fve.value.id,
+                parts: [{
+                  path: (if $fve.key == 0
+                    then $bu+"/firmware-"+$b.id+"-"+$v+".bin"
+                    else $bu+"/firmware-"+$b.id+"-"+$fve.value.id+"-"+$v+".bin"
+                    end),
+                  offset: 0
+                }]
+              }
+            ]' project.json)
+
+          jq -n --arg name "$PROJECT_NAME" --arg version "$VERSION" \
+                 --arg channel "dev" --argjson builds "$BUILDS" \
+            '{name:$name,version:$version,channel:$channel,builds:$builds}' \
+            > docs/dev/manifest.json
+
+          # Copy firmware binaries into docs/dev for Pages hosting
+          cp firmware/*.bin docs/dev/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/dev
+          destination_dir: dev
+          keep_files: true
+
+      - name: Stage root web installer files
+        run: |
+          python3 scripts/generate_boards_config.py
+          mkdir -p _deploy_root
+          cp docs/index.html _deploy_root/
+          cp docs/boards_config.js _deploy_root/
+          cp -r docs/assets _deploy_root/
+
+      - name: Deploy web installer to GitHub Pages root
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_deploy_root
+          destination_dir: .
+          keep_files: true

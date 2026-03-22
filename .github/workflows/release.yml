@@ -1,0 +1,201 @@
+# ============================================================
+# release.yml
+# Triggered on version tags (v*).
+# Builds all release PlatformIO environments, creates a
+# GitHub Release and attaches firmware .bin files as assets.
+# Also updates the web installer manifest and deploys to
+# GitHub Pages.
+# ============================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  setup:
+    name: Read board matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.read.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Build matrix from project.json
+        id: read
+        run: |
+          matrix=$(jq -c '[
+            .boards[] as $b |
+            ((.firmwareVariants // [{id:"nowifi"}]) | to_entries[]) as $fve |
+            {
+              environment:       (if $fve.key == 0 then $b.id else ($b.id + "-" + $fve.value.id) end),
+              chip:              $b.chip,
+              bootloader_offset: $b.bootloaderOffset,
+              requires_uv:       $b.requiresUv
+            }
+          ]' project.json)
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build firmware
+    needs: setup
+    uses: ./.github/workflows/_build-firmware.yml
+    with:
+      matrix: ${{ needs.setup.outputs.matrix }}
+      version: ${{ github.ref_name }}
+      wifi_strict: true
+      wifi_allow_open_release: ${{ vars.WIFI_AP_ALLOW_OPEN_RELEASE }}
+      artifact_retention_days: 7
+    secrets:
+      WIFI_AP_PASSWORD: ${{ secrets.WIFI_AP_PASSWORD }}
+      OTA_USERNAME: ${{ secrets.OTA_USERNAME }}
+      OTA_PASSWORD: ${{ secrets.OTA_PASSWORD }}
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Fetch tag commit
+        # The checkout above is shallow (fetch-depth: 1) and targets main.
+        # github.sha is the tagged commit, which may not be in the shallow clone.
+        # Fetch it explicitly so git show can access the tag's tree.
+        run: git fetch origin ${{ github.sha }} --depth=1
+
+      - name: Restore project.json from tag commit
+        # Manifests are generated from project.json; use the tag's copy (not
+        # main's) so the board list always matches the binaries that were built.
+        run: git show ${{ github.sha }}:project.json > project.json
+
+      - name: Download all firmware artifacts
+        uses: actions/download-artifact@v4.2.0
+        with:
+          path: firmware
+          merge-multiple: true
+
+      - name: List firmware files
+        run: ls -lh firmware/
+
+      - name: Copy firmware to docs for CORS-safe GitHub Pages hosting
+        run: |
+          VERSION="${{ github.ref_name }}"
+          mkdir -p docs/firmware/${VERSION}
+          cp firmware/*.bin docs/firmware/${VERSION}/
+
+      - name: Generate manifest.json and version.json
+        run: |
+          VERSION="${{ github.ref_name }}"
+          PROJECT_NAME=$(jq -r '.project.name' project.json)
+          # manifest.json: served by the browser — must use GitHub Pages URLs (CORS-enabled).
+          # Derive base URL from installer.baseUrl in project.json so forks/custom domains work.
+          INSTALLER_BASE=$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)
+          PAGES_URL="${INSTALLER_BASE}/firmware/${VERSION}"
+          # version.json: fetched by firmware via esp_https_ota — GitHub Releases URLs are fine
+          RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
+
+          BUILDS=$(jq -c --arg pu "$PAGES_URL" --arg v "$VERSION" '
+            [
+              .boards[] as $b |
+              ((.firmwareVariants // [{id:"nowifi"}]) | to_entries[]) as $fve |
+              {
+                chipFamily: $b.chipFamily,
+                board:      $b.name,
+                variant:    $fve.value.id,
+                parts: [{
+                  path: (if $fve.key == 0
+                    then $pu+"/firmware-"+$b.id+"-"+$v+".bin"
+                    else $pu+"/firmware-"+$b.id+"-"+$fve.value.id+"-"+$v+".bin"
+                    end),
+                  offset: 0
+                }]
+              }
+            ]' project.json)
+
+          jq -n --arg name "$PROJECT_NAME" --arg version "$VERSION" \
+                 --arg channel "release" --argjson builds "$BUILDS" \
+            '{name:$name,version:$version,channel:$channel,builds:$builds}' \
+            > docs/manifest.json
+
+          BOARDS_JSON=$(jq -c --arg u "$RELEASES_URL" --arg v "$VERSION" \
+            '[.boards[] | {key:.name, value:($u+"/firmware-"+.id+"-"+$v+".bin")}] | from_entries' \
+            project.json)
+
+          jq -n --arg version "$VERSION" --argjson boards "$BOARDS_JSON" \
+            '{version:$version,boards:$boards}' \
+            > docs/version.json
+
+          # Per-board version files: each board gets its own tiny file with only
+          # "version" and "url" so the ESP32 downloads a fixed ~120-byte payload
+          # regardless of how many boards exist in total.
+          mkdir -p docs/version
+          for board in $(jq -r '.boards[].id' project.json); do
+            # Use the app-only OTA binary, not the merged full-flash binary.
+            # The merged binary includes bootloader+partition table and causes
+            # "Failed to fetch app description header" when applied via esp_https_ota.
+            fw_url="${RELEASES_URL}/firmware-${board}-${VERSION}-ota.bin"
+            jq -n --arg v "$VERSION" --arg u "$fw_url" \
+              '{"version":$v,"url":$u}' > "docs/version/${board}.json"
+          done
+
+      - name: Generate boards_config.js
+        run: python scripts/generate_boards_config.py
+
+      - name: Commit updated manifests and boards config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/manifest.json docs/version.json docs/version/ docs/boards_config.js
+          git diff --staged --quiet || git commit -m "chore: update manifests for ${{ github.ref_name }}"
+          git push origin HEAD:main
+
+      - name: Generate release notes
+        run: |
+          VERSION="${{ github.ref_name }}"
+          PROJECT_NAME=$(jq -r '.project.name' project.json)
+          PAGES_URL="$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)/"
+          {
+            echo "## ${PROJECT_NAME} ${VERSION}"
+            echo ""
+            echo "### Flash via web installer"
+            echo "👉 ${PAGES_URL}"
+            echo ""
+            echo "### Supported boards and variants"
+            echo "| Board | Variant | Firmware file |"
+            echo "|---|---|---|"
+            jq -r --arg v "$VERSION" '
+              .boards[] as $b |
+              ((.firmwareVariants // [{id:"nowifi",label:"No WiFi"}]) | to_entries[]) as $fve |
+              "| \($b.name) | \($fve.value.label) | `firmware-\($b.id)\(if $fve.key == 0 then "" else "-"+$fve.value.id end)-\($v).bin` |"
+            ' project.json
+          } > release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: release_notes.md
+          files: firmware/*.bin
+          draft: false
+          prerelease: false
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          destination_dir: .
+          keep_files: true
