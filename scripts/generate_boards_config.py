@@ -22,6 +22,11 @@ def js(s: str) -> str:
     return json.dumps(s, ensure_ascii=False)
 
 
+def js_optional(s) -> str:
+    """Return s as a JS string literal, or null if falsy."""
+    return json.dumps(s if s else None, ensure_ascii=False)
+
+
 def main() -> None:
     config = json.loads(PROJECT_JSON.read_text(encoding="utf-8"))
     boards = config["boards"]
@@ -34,18 +39,50 @@ def main() -> None:
 
     for i, board in enumerate(boards):
         comma = "," if i < len(boards) - 1 else ""
-        # Use json.dumps for correct JS string literal escaping (handles
-        # backslashes, newlines, Unicode, etc. — not just double quotes).
         bid        = js(board["id"])
         name       = js(board["name"])
         icon       = js(board["icon"])
         meta       = js(board["meta"])
         chipFamily = js(board["chipFamily"])
+        sku        = js_optional(board.get("sku", ""))
+        url        = js_optional(board.get("url", ""))
+        image      = js_optional(board.get("image", ""))
         lines.append(
-            f'  {{ id: {bid}, name: {name}, icon: {icon}, meta: {meta}, chipFamily: {chipFamily} }}{comma}'
+            f'  {{ id: {bid}, name: {name}, icon: {icon}, meta: {meta}, chipFamily: {chipFamily},'
+            f' sku: {sku}, url: {url}, image: {image} }}{comma}'
         )
 
     lines.append("];")
+
+    variants = config.get("firmwareVariants", [])
+    if variants:
+        lines.append("")
+        lines.append("window.VARIANTS_CONFIG = [")
+        for i, v in enumerate(variants):
+            comma = "," if i < len(variants) - 1 else ""
+            vid   = js(v["id"])
+            label = js(v["label"])
+            desc  = js(v.get("description", ""))
+            lines.append(
+                f'  {{ id: {vid}, label: {label}, description: {desc} }}{comma}'
+            )
+        lines.append("];")
+
+    components = config.get("components", [])
+    if components:
+        lines.append("")
+        lines.append("window.COMPONENTS_CONFIG = [")
+        for i, c in enumerate(components):
+            comma = "," if i < len(components) - 1 else ""
+            name  = js(c["name"])
+            desc  = js_optional(c.get("description", ""))
+            sku   = js_optional(c.get("sku", ""))
+            url   = js_optional(c.get("url", ""))
+            image = js_optional(c.get("image", ""))
+            lines.append(
+                f'  {{ name: {name}, description: {desc}, sku: {sku}, url: {url}, image: {image} }}{comma}'
+            )
+        lines.append("];")
 
     branding = config.get("branding", [])
     if branding:
@@ -71,6 +108,9 @@ def main() -> None:
             f'  title:              {js(installer["title"])},',
             f'  h1:                 {js(installer["h1"])},',
             f'  subtitle:           {js(installer["subtitle"])},',
+            f'  description:        {js_optional(installer.get("description", ""))},',
+            f'  youtubeUrl:         {js_optional(installer.get("youtubeUrl", ""))},',
+            f'  howToUrl:           {js_optional(installer.get("howToUrl", ""))},',
             f'  baseUrl:            {js(installer["baseUrl"])},',
             f'  githubUrl:          {js(installer["githubUrl"])},',
             f'  badgeText:          {js(installer.get("badgeText", "Web Installer"))},',

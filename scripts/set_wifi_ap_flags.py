@@ -36,6 +36,32 @@ ota_user     = os.environ.get('OTA_USERNAME_SECRET', '').strip()
 ota_pass     = os.environ.get('OTA_PASSWORD_SECRET', '').strip()
 board_id     = os.environ.get('BOARD_ID', '').strip()
 
+# Determine whether this environment requires WiFi by matching BOARD_ID against
+# the firmwareVariants list.  The first variant has no suffix (it is the default);
+# subsequent variants use a '-<id>' suffix.  Fall back to requiring WiFi if the
+# variant cannot be identified (safe default).
+_requires_wifi = True
+try:
+    with open('project.json', encoding='utf-8') as _pf:
+        _proj = json.load(_pf)
+    _board_ids  = {b['id'] for b in _proj.get('boards', [])}
+    _variants   = _proj.get('firmwareVariants', [])
+    for _i, _v in enumerate(_variants):
+        if _i == 0:
+            # First variant: no suffix — matches bare board ids
+            if board_id in _board_ids:
+                _requires_wifi = _v.get('requiresWifi', True)
+                break
+        else:
+            _suffix = '-' + _v['id']
+            _base   = board_id[:-len(_suffix)] if board_id.endswith(_suffix) else None
+            if _base and _base in _board_ids:
+                _requires_wifi = _v.get('requiresWifi', True)
+                break
+except (OSError, json.JSONDecodeError):
+    pass
+_is_no_wifi = not _requires_wifi
+
 
 def escape_for_c_string(s: str) -> str:
     """Escape a value for embedding in a C string literal."""
@@ -44,7 +70,10 @@ def escape_for_c_string(s: str) -> str:
              .replace('\n', '\\n')
              .replace('\r', '\\r'))
 
-if pw:
+if _is_no_wifi:
+    # No-wifi variant: WiFi provisioning is compiled out — no AP policy needed.
+    flag = ""
+elif pw:
     # Use shlex.quote on the C string literal so single-quotes in the
     # password don't break PlatformIO's shlex-style flag parsing.
     c_literal = '"' + escape_for_c_string(pw) + '"'
@@ -90,23 +119,25 @@ else:
 
 # ── Optional OTA credentials ──────────────────────────────────────────────────
 # Both must be set together; either alone is silently ignored (incomplete config).
-extra_flags = [flag]
+extra_flags = [flag] if flag else []
 
 if ota_user and ota_pass:
     extra_flags.append("-D OTA_USERNAME=" + shlex.quote('"' + escape_for_c_string(ota_user) + '"'))
     extra_flags.append("-D OTA_PASSWORD=" + shlex.quote('"' + escape_for_c_string(ota_pass) + '"'))
 
 # ── VERSION_CHECK_URL — auto-computed per board from project.json ─────────────
-# Enabled whenever installer.baseUrl is set and BOARD_ID is known.
-try:
-    with open('project.json', encoding='utf-8') as pf:
-        project = json.load(pf)
-    base_url = project.get('installer', {}).get('baseUrl', '').rstrip('/')
-    if base_url and board_id:
-        version_url = f"{base_url}/version/{board_id}.json"
-        extra_flags.append("-D VERSION_CHECK_URL=" + shlex.quote(f'"{version_url}"'))
-except (OSError, json.JSONDecodeError):
-    pass  # project.json unavailable — skip VERSION_CHECK_URL injection
+# Enabled whenever installer.baseUrl is set, BOARD_ID is known, and the variant
+# supports WiFi (no-wifi variants cannot perform version checks).
+if not _is_no_wifi:
+    try:
+        with open('project.json', encoding='utf-8') as pf:
+            project = json.load(pf)
+        base_url = project.get('installer', {}).get('baseUrl', '').rstrip('/')
+        if base_url and board_id:
+            version_url = f"{base_url}/version/{board_id}.json"
+            extra_flags.append("-D VERSION_CHECK_URL=" + shlex.quote(f'"{version_url}"'))
+    except (OSError, json.JSONDecodeError):
+        pass  # project.json unavailable — skip VERSION_CHECK_URL injection
 
 # ── Write all flags to GITHUB_ENV (multiline syntax) ─────────────────────────
 # Multiline syntax prevents newlines inside values from corrupting the env file.

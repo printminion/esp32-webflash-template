@@ -24,12 +24,16 @@ jobs:
       - name: Build matrix from project.json
         id: read
         run: |
-          matrix=$(jq -c '[.boards[] | {
-            environment:       .id,
-            chip:              .chip,
-            bootloader_offset: .bootloaderOffset,
-            requires_uv:       .requiresUv
-          }]' project.json)
+          matrix=$(jq -c '[
+            .boards[] as $b |
+            ((.firmwareVariants // [{id:"nowifi"}]) | to_entries[]) as $fve |
+            {
+              environment:       (if $fve.key == 0 then $b.id else ($b.id + "-" + $fve.value.id) end),
+              chip:              $b.chip,
+              bootloader_offset: $b.bootloaderOffset,
+              requires_uv:       $b.requiresUv
+            }
+          ]' project.json)
           echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
       - name: Compute version string
         id: version
@@ -82,10 +86,23 @@ jobs:
           BASE_URL="$(jq -r '.installer.baseUrl | rtrimstr("/")' project.json)/dev"
           mkdir -p docs/dev
 
-          BUILDS=$(jq -c --arg bu "$BASE_URL" --arg v "$VERSION" \
-            '[.boards[] | {chipFamily, board: .name,
-              parts: [{path: ($bu+"/firmware-"+.id+"-"+$v+".bin"), offset: 0}]
-            }]' project.json)
+          BUILDS=$(jq -c --arg bu "$BASE_URL" --arg v "$VERSION" '
+            [
+              .boards[] as $b |
+              ((.firmwareVariants // [{id:"nowifi"}]) | to_entries[]) as $fve |
+              {
+                chipFamily: $b.chipFamily,
+                board:      $b.name,
+                variant:    $fve.value.id,
+                parts: [{
+                  path: (if $fve.key == 0
+                    then $bu+"/firmware-"+$b.id+"-"+$v+".bin"
+                    else $bu+"/firmware-"+$b.id+"-"+$fve.value.id+"-"+$v+".bin"
+                    end),
+                  offset: 0
+                }]
+              }
+            ]' project.json)
 
           jq -n --arg name "$PROJECT_NAME" --arg version "$VERSION" \
                  --arg channel "dev" --argjson builds "$BUILDS" \
@@ -109,6 +126,7 @@ jobs:
           mkdir -p _deploy_root
           cp docs/index.html _deploy_root/
           cp docs/boards_config.js _deploy_root/
+          cp -r docs/assets _deploy_root/
 
       - name: Deploy web installer to GitHub Pages root
         uses: peaceiris/actions-gh-pages@v4

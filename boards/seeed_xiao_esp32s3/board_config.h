@@ -8,13 +8,20 @@
 #define LED_PIN           21
 #define LED_ACTIVE_LOW    true
 
+// Button (built-in BOOT button — active LOW, INPUT_PULLUP; no external wiring needed)
+// Change BUTTON_PIN to any GPIO if you wire an external button instead.
+#define BUTTON_PIN        0
+#define BUTTON_ACTIVE_LOW true
+
 // UART
 #define SERIAL_BAUD       115200
 
 // Feature flags
+#ifndef VARIANT_NO_WIFI
 #define FEATURE_WIFI_PROVISIONING
 #define FEATURE_OTA
 #define FEATURE_VERSION_CHECK
+#endif
 
 // ============================================================
 // Peripheral pin map — fill in for your hardware

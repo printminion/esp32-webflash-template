@@ -25,12 +25,16 @@ jobs:
       - name: Build matrix from project.json
         id: read
         run: |
-          matrix=$(jq -c '[.boards[] | {
-            environment:       .id,
-            chip:              .chip,
-            bootloader_offset: .bootloaderOffset,
-            requires_uv:       .requiresUv
-          }]' project.json)
+          matrix=$(jq -c '[
+            .boards[] as $b |
+            ((.firmwareVariants // [{id:"nowifi"}]) | to_entries[]) as $fve |
+            {
+              environment:       (if $fve.key == 0 then $b.id else ($b.id + "-" + $fve.value.id) end),
+              chip:              $b.chip,
+              bootloader_offset: $b.bootloaderOffset,
+              requires_uv:       $b.requiresUv
+            }
+          ]' project.json)
           echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
 
   build:
@@ -102,10 +106,23 @@ jobs:
           # version.json: fetched by firmware via esp_https_ota — GitHub Releases URLs are fine
           RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}"
 
-          BUILDS=$(jq -c --arg pu "$PAGES_URL" --arg v "$VERSION" \
-            '[.boards[] | {chipFamily, board: .name,
-              parts: [{path: ($pu+"/firmware-"+.id+"-"+$v+".bin"), offset: 0}]
-            }]' project.json)
+          BUILDS=$(jq -c --arg pu "$PAGES_URL" --arg v "$VERSION" '
+            [
+              .boards[] as $b |
+              ((.firmwareVariants // [{id:"nowifi"}]) | to_entries[]) as $fve |
+              {
+                chipFamily: $b.chipFamily,
+                board:      $b.name,
+                variant:    $fve.value.id,
+                parts: [{
+                  path: (if $fve.key == 0
+                    then $pu+"/firmware-"+$b.id+"-"+$v+".bin"
+                    else $pu+"/firmware-"+$b.id+"-"+$fve.value.id+"-"+$v+".bin"
+                    end),
+                  offset: 0
+                }]
+              }
+            ]' project.json)
 
           jq -n --arg name "$PROJECT_NAME" --arg version "$VERSION" \
                  --arg channel "release" --argjson builds "$BUILDS" \
@@ -155,12 +172,14 @@ jobs:
             echo "### Flash via web installer"
             echo "👉 ${PAGES_URL}"
             echo ""
-            echo "### Supported boards"
-            echo "| Board | Firmware file |"
-            echo "|---|---|"
-            jq -r --arg v "$VERSION" \
-              '.boards[] | "| \(.name) | `firmware-\(.id)-\($v).bin` |"' \
-              project.json
+            echo "### Supported boards and variants"
+            echo "| Board | Variant | Firmware file |"
+            echo "|---|---|---|"
+            jq -r --arg v "$VERSION" '
+              .boards[] as $b |
+              ((.firmwareVariants // [{id:"nowifi",label:"No WiFi"}]) | to_entries[]) as $fve |
+              "| \($b.name) | \($fve.value.label) | `firmware-\($b.id)\(if $fve.key == 0 then "" else "-"+$fve.value.id end)-\($v).bin` |"
+            ' project.json
           } > release_notes.md
 
       - name: Create GitHub Release
